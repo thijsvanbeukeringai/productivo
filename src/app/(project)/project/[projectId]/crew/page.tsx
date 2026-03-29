@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getCachedMember } from '@/lib/supabase/session'
 import { CrewPlanningClient } from './CrewPlanningClient'
 
 interface PageProps {
@@ -13,27 +14,22 @@ export default async function CrewPage({ params }: PageProps) {
   const { projectId } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const userId = session.user.id
 
-  const [memberRes, projectRes] = await Promise.all([
-    supabase
-      .from('project_members')
-      .select('role')
-      .eq('project_id', projectId)
-      .eq('user_id', user.id)
-      .single(),
-    supabase
-      .from('projects')
-      .select('id, name, start_date, end_date, show_days')
-      .eq('id', projectId)
-      .single(),
-  ])
+  const member = await getCachedMember(projectId, userId)
+  if (!member) redirect('/dashboard')
 
-  if (!memberRes.data) redirect('/dashboard')
-  if (!projectRes.data) notFound()
+  const { data: projectData } = await supabase
+    .from('projects')
+    .select('id, name, start_date, end_date, show_days')
+    .eq('id', projectId)
+    .single()
 
-  const canAdmin = ['super_admin', 'company_admin', 'centralist'].includes(memberRes.data.role)
+  if (!projectData) notFound()
+
+  const canAdmin = ['super_admin', 'company_admin', 'centralist'].includes(member.role)
 
   const admin = createAdminClient()
   const [{ data: crewCompanies }, { data: wristbands }] = await Promise.all([
@@ -58,11 +54,11 @@ export default async function CrewPage({ params }: PageProps) {
   ])
 
   const project = {
-    id: projectRes.data.id,
-    name: projectRes.data.name,
-    start_date: projectRes.data.start_date as string | null,
-    end_date: projectRes.data.end_date as string | null,
-    show_days: (projectRes.data.show_days as string[]) || [],
+    id: projectData.id,
+    name: projectData.name,
+    start_date: projectData.start_date as string | null,
+    end_date: projectData.end_date as string | null,
+    show_days: (projectData.show_days as string[]) || [],
   }
 
   return (

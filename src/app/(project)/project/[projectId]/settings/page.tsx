@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getCachedMember } from '@/lib/supabase/session'
 import { ProjectInfoForm } from '@/components/project/ProjectInfoForm'
 import { getServerTranslations } from '@/lib/i18n/server'
 
@@ -13,19 +14,20 @@ export default async function SettingsPage({ params }: PageProps) {
   const supabase = await createClient()
   const T = await getServerTranslations()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const userId = session.user.id
 
-  const [projectRes, memberRes] = await Promise.all([
+  const [projectRes, member] = await Promise.all([
     supabase.from('projects').select('*, companies(name), show_days').eq('id', projectId).single(),
-    supabase.from('project_members').select('role').eq('project_id', projectId).eq('user_id', user.id).single(),
+    getCachedMember(projectId, userId),
   ])
 
   const project = projectRes.data
   if (!project) notFound()
-  if (!memberRes.data) redirect('/dashboard')
+  if (!member) redirect('/dashboard')
 
-  const canAdmin = ['super_admin', 'company_admin', 'centralist'].includes(memberRes.data.role)
+  const canAdmin = ['super_admin', 'company_admin', 'centralist'].includes(member.role)
   const companyName = (project.companies as unknown as { name: string } | null)?.name || ''
 
   const settingsNav = [

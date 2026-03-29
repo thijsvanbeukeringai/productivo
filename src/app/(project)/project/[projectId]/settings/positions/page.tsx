@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCachedMember } from '@/lib/supabase/session'
 import { createPosition, updatePositionStatus } from '@/lib/actions/settings.actions'
 import type { PositionStatus } from '@/types/app.types'
 import { cn } from '@/lib/utils/cn'
@@ -20,15 +21,15 @@ export default async function PositionsPage({ params }: PageProps) {
     sanitary_break: { label: T.positions.status_sanitary, bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const userId = session.user.id
 
   const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
   if (!project) notFound()
 
-  const { data: currentMember } = await supabase
-    .from('project_members').select('*, profiles(*)').eq('project_id', projectId).eq('user_id', user.id).single()
-  if (!currentMember) redirect('/dashboard')
+  const member = await getCachedMember(projectId, userId)
+  if (!member) redirect('/dashboard')
 
   const { data: positions } = await supabase
     .from('positions').select('*, area:areas(*)').eq('project_id', projectId).order('number')

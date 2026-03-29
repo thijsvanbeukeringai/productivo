@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCachedMember } from '@/lib/supabase/session'
 import { EnforcementCounterCards } from '@/components/dashboard/EnforcementCounters'
 import { AreasRealtimeGrid } from '@/components/areas/AreasRealtimeGrid'
 import { getShiftDateLabel } from '@/lib/utils/format-timestamp'
@@ -22,8 +23,9 @@ export default async function DashboardPage({ params }: PageProps) {
   const { projectId } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const userId = session.user.id
 
   const { data: project } = await supabase
     .from('projects')
@@ -32,14 +34,8 @@ export default async function DashboardPage({ params }: PageProps) {
     .single()
   if (!project) notFound()
 
-  const { data: currentMember } = await supabase
-    .from('project_members')
-    .select('*, profiles(*)')
-    .eq('project_id', projectId)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!currentMember) redirect('/dashboard')
+  const member = await getCachedMember(projectId, userId)
+  if (!member) redirect('/dashboard')
 
   const shiftDate = getCurrentShiftDate()
 

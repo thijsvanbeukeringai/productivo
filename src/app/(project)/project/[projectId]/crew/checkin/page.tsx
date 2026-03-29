@@ -1,6 +1,7 @@
-import { notFound, redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getCachedMember } from '@/lib/supabase/session'
 import { CheckinClient } from './CheckinClient'
 
 interface PageProps {
@@ -11,19 +12,14 @@ export default async function CheckinPage({ params }: PageProps) {
   const { projectId } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const userId = session.user.id
 
-  const memberRes = await supabase
-    .from('project_members')
-    .select('role')
-    .eq('project_id', projectId)
-    .eq('user_id', user.id)
-    .single()
+  const member = await getCachedMember(projectId, userId)
+  if (!member) redirect('/dashboard')
 
-  if (!memberRes.data) redirect('/dashboard')
-
-  const canAdmin = ['super_admin', 'company_admin', 'centralist'].includes(memberRes.data.role)
+  const canAdmin = ['super_admin', 'company_admin', 'centralist'].includes(member.role)
 
   const admin = createAdminClient()
   const [{ data: planningRows }, { data: wristbands }] = await Promise.all([

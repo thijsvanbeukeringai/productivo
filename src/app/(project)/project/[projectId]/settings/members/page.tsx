@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCachedMember } from '@/lib/supabase/session'
 import { inviteUser } from '@/lib/actions/project.actions'
 import { roleLabels } from '@/lib/utils/priority-colors'
 import type { UserRole } from '@/types/app.types'
@@ -14,17 +15,17 @@ export default async function MembersPage({ params }: PageProps) {
   const T = await getServerTranslations()
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const userId = session.user.id
 
   const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
   if (!project) notFound()
 
-  const { data: currentMember } = await supabase
-    .from('project_members').select('*, profiles(*)').eq('project_id', projectId).eq('user_id', user.id).single()
-  if (!currentMember) redirect('/dashboard')
+  const member = await getCachedMember(projectId, userId)
+  if (!member) redirect('/dashboard')
 
-  const canAdmin = ['super_admin', 'company_admin'].includes(currentMember.role)
+  const canAdmin = ['super_admin', 'company_admin'].includes(member.role)
   if (!canAdmin) redirect(`/project/${projectId}/settings`)
 
   const { data: members } = await supabase

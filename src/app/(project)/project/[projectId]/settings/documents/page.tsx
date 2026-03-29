@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCachedMember } from '@/lib/supabase/session'
 import { DocumentsClient } from '@/components/documents/DocumentsClient'
 
 interface PageProps {
@@ -10,15 +11,15 @@ export default async function DocumentsPage({ params }: PageProps) {
   const { projectId } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const userId = session.user.id
 
   const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
   if (!project) notFound()
 
-  const { data: currentMember } = await supabase
-    .from('project_members').select('*, profiles(*)').eq('project_id', projectId).eq('user_id', user.id).single()
-  if (!currentMember) redirect('/dashboard')
+  const member = await getCachedMember(projectId, userId)
+  if (!member) redirect('/dashboard')
 
   const { data: documents } = await supabase
     .from('project_documents')
@@ -26,7 +27,7 @@ export default async function DocumentsPage({ params }: PageProps) {
     .eq('project_id', projectId)
     .order('created_at', { ascending: false })
 
-  const canEdit = ['super_admin', 'company_admin'].includes(currentMember.role)
+  const canEdit = ['super_admin', 'company_admin'].includes(member.role)
 
   return (
     <main className="h-full overflow-y-auto px-4 py-4 max-w-4xl w-full mx-auto">

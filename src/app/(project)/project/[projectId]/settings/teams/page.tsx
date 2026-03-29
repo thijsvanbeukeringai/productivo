@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCachedMember } from '@/lib/supabase/session'
 import { createTeam, updateTeam, deleteTeam } from '@/lib/actions/settings.actions'
 import { cn } from '@/lib/utils/cn'
 import { ConfirmDeleteButton } from '@/components/shared/ConfirmDeleteButton'
@@ -14,15 +15,15 @@ export default async function TeamsPage({ params }: PageProps) {
   const T = await getServerTranslations()
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const userId = session.user.id
 
   const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
   if (!project) notFound()
 
-  const { data: currentMember } = await supabase
-    .from('project_members').select('*, profiles(*)').eq('project_id', projectId).eq('user_id', user.id).single()
-  if (!currentMember) redirect('/dashboard')
+  const member = await getCachedMember(projectId, userId)
+  if (!member) redirect('/dashboard')
 
   const { data: teams } = await supabase
     .from('teams').select('*, area:areas(*)').eq('project_id', projectId).order('number')
