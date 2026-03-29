@@ -61,19 +61,21 @@ body {
   letter-spacing: 0.05em;
 }
 
-/* Leaflet area tooltip — no white background */
-.leaflet-tooltip.area-tooltip {
-  background: rgba(15, 23, 42, 0.82);
+/* Leaflet area permanent label */
+.leaflet-tooltip.area-label-tooltip {
+  background: rgba(15, 23, 42, 0.78);
   border: none;
-  border-radius: 6px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.35);
-  padding: 4px 8px;
+  border-radius: 5px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.3);
+  padding: 3px 8px;
   color: #fff;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
+  letter-spacing: 0.02em;
+  pointer-events: none;
 }
-.leaflet-tooltip.area-tooltip::before {
+.leaflet-tooltip.area-label-tooltip::before {
   display: none;
 }
 

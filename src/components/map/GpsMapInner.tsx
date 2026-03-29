@@ -16,27 +16,27 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-const AREA_STYLE: Record<AreaStatus, { color: string; fillColor: string; label: string }> = {
+const AREA_STYLE: Record<AreaStatus, { color: string; fillColor: string; label: string; dash?: string }> = {
   open:      { color: '#16a34a', fillColor: '#22c55e', label: 'Open' },
-  regulated: { color: '#ea580c', fillColor: '#f97316', label: 'Reguleren' },
+  regulated: { color: '#d97706', fillColor: '#f59e0b', label: 'Reguleren', dash: '8 4' },
   closed:    { color: '#dc2626', fillColor: '#ef4444', label: 'Gesloten' },
 }
 
 function positionDivIcon(number: number) {
   return L.divIcon({
     className: '',
-    html: `<div style="width:26px;height:26px;background:#3b82f6;border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;box-shadow:0 1px 4px rgba(0,0,0,0.4)">${number}</div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    html: `<div style="width:30px;height:30px;background:#2563eb;border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.35),0 0 0 1px rgba(37,99,235,0.3)">${number}</div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
   })
 }
 
 function poiDivIcon(color: string) {
   return L.divIcon({
     className: '',
-    html: `<div style="width:14px;height:14px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.35)"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    html: `<div style="width:16px;height:16px;background:${color};border:2.5px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
   })
 }
 
@@ -185,8 +185,10 @@ export default function GpsMapInner({ areas, positions, pois, categories, calibr
         zoomControl
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={20}
         />
 
         {backgroundUrl && calibration.length >= 2 && (
@@ -201,8 +203,10 @@ export default function GpsMapInner({ areas, positions, pois, categories, calibr
           const style = AREA_STYLE[area.status]
           return (
             <Polygon key={area.id} positions={gpsCoords}
-              pathOptions={{ color: style.color, fillColor: style.fillColor, fillOpacity: 0.45, weight: 2 }}>
-              <Tooltip className="area-tooltip">{area.name} — {style.label}</Tooltip>
+              pathOptions={{ color: style.color, fillColor: style.fillColor, fillOpacity: 0.3, weight: 2.5, dashArray: style.dash }}>
+              <Tooltip permanent direction="center" className="area-label-tooltip" offset={[0, 0]}>
+                {area.name}
+              </Tooltip>
             </Polygon>
           )
         })}
