@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { updateAreaStatus } from '@/lib/actions/settings.actions'
 import { cn } from '@/lib/utils/cn'
 import type { Area, AreaStatus } from '@/types/app.types'
@@ -22,12 +22,18 @@ interface Props {
 }
 
 export function AreaCard({ area, projectId, readonly = false, count, countDanger = false }: Props) {
+  const [optimisticStatus, setOptimisticStatus] = useState<AreaStatus>(area.status)
   const [, startTransition] = useTransition()
-  const current = statusConfig[area.status]
+
+  const current = statusConfig[optimisticStatus]
 
   function handleStatus(status: AreaStatus) {
-    if (status === area.status) return
-    startTransition(async () => { await updateAreaStatus(area.id, projectId, status) })
+    if (status === optimisticStatus) return
+    setOptimisticStatus(status) // immediate UI update
+    startTransition(async () => {
+      const res = await updateAreaStatus(area.id, projectId, status)
+      if (res?.error) setOptimisticStatus(area.status) // revert on error
+    })
   }
 
   return (
