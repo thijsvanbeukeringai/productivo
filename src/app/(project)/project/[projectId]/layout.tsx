@@ -1,5 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
+import { unstable_cache } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ProjectHeader } from '@/components/layout/ProjectHeader'
 import { ProjectSidebar } from '@/components/layout/ProjectSidebar'
 import { LanguageProvider } from '@/lib/i18n/LanguageContext'
@@ -11,6 +13,19 @@ interface LayoutProps {
   params: Promise<{ projectId: string }>
 }
 
+const getProjectData = unstable_cache(
+  async (projectId: string) => {
+    const admin = createAdminClient()
+    const [projectRes, standbyRes] = await Promise.all([
+      admin.from('projects').select('*').eq('id', projectId).single(),
+      admin.from('teams').select('*').eq('project_id', projectId).eq('is_standby', true).eq('is_active', true),
+    ])
+    return { project: projectRes.data, standbyTeams: standbyRes.data || [] }
+  },
+  ['project-layout'],
+  { revalidate: 30, tags: ['project-layout'] }
+)
+
 export default async function ProjectLayout({ children, params }: LayoutProps) {
   const { projectId } = await params
   const supabase = await createClient()
@@ -18,20 +33,17 @@ export default async function ProjectLayout({ children, params }: LayoutProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [projectRes, memberRes, standbyRes, companyMemberRes] = await Promise.all([
-    supabase.from('projects').select('*').eq('id', projectId).single(),
+  const [{ project, standbyTeams }, memberRes, companyMemberRes] = await Promise.all([
+    getProjectData(projectId),
     supabase.from('project_members').select('*, profiles(*)').eq('project_id', projectId).eq('user_id', user.id).single(),
-    supabase.from('teams').select('*').eq('project_id', projectId).eq('is_standby', true).eq('is_active', true),
     supabase.from('company_members').select('role').eq('user_id', user.id).eq('role', 'super_admin').maybeSingle(),
   ])
 
-  const project = projectRes.data
   if (!project) notFound()
 
   const currentMember = memberRes.data
   if (!currentMember) redirect('/dashboard')
 
-  const standbyTeams = standbyRes.data || []
   const canAdmin = ['super_admin', 'company_admin'].includes(currentMember.role)
   const isSuperAdmin = !!companyMemberRes.data
   const activeModules: string[] = project.active_modules || ['logbook']
