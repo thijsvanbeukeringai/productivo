@@ -97,6 +97,10 @@ export function LogEntryNew({ projectId, subjects, areas, members, teams, positi
       setEnforcementType('')
       setSelectedSubjectId('')
       setSelectedAreaId('')
+      // Immediately notify the feed — don't wait for Supabase realtime (~500ms delay)
+      if (result.data?.id) {
+        window.dispatchEvent(new CustomEvent('log-created', { detail: { logId: result.data.id } }))
+      }
     }
   }
 

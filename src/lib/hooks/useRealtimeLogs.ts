@@ -28,6 +28,19 @@ export function useRealtimeLogs(projectId: string, initialLogs: Log[]) {
     setLogs(initialLogs)
   }, [initialLogs])
 
+  // Immediate add when this browser submits a log (no realtime delay)
+  useEffect(() => {
+    function onLogCreated(e: Event) {
+      const logId = (e as CustomEvent<{ logId: string }>).detail?.logId
+      if (!logId) return
+      fetchFullLog(logId).then(log => {
+        if (log) setLogs(prev => prev.some(l => l.id === log.id) ? prev : [log, ...prev])
+      })
+    }
+    window.addEventListener('log-created', onLogCreated)
+    return () => window.removeEventListener('log-created', onLogCreated)
+  }, [fetchFullLog])
+
   useEffect(() => {
     const supabase = createClient()
 
