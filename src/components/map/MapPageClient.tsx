@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function MapPageClient({ projectId, backgroundUrl, areas, positions, pois, categories, calibration, canAdmin }: Props) {
-  const [tab, setTab] = useState<Tab>(canAdmin ? 'editor' : 'live')
+  const [tab, setTab] = useState<Tab>('gps')
   const containerRef = useRef<HTMLDivElement>(null)
   const [editorSize, setEditorSize] = useState({ w: 1000, h: 700 })
 
@@ -46,25 +46,14 @@ export function MapPageClient({ projectId, backgroundUrl, areas, positions, pois
   return (
     <div ref={containerRef} className="h-full flex flex-col overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shrink-0">
-        {tabBtn('live', 'Live kaart')}
         {tabBtn('gps', 'GPS kaart')}
+        {tabBtn('live', 'Live kaart')}
         {canAdmin && tabBtn('editor', 'Editor')}
       </div>
 
+      {/* All tabs rendered simultaneously — GPS map (Leaflet) loads immediately */}
       <div className="flex-1 overflow-hidden flex flex-col">
-        {tab === 'editor' && canAdmin ? (
-          <MapEditor
-            projectId={projectId}
-            backgroundUrl={backgroundUrl}
-            areas={areas}
-            positions={positions}
-            pois={pois}
-            categories={categories}
-            calibration={calibration}
-            canvasWidth={editorSize.w}
-            canvasHeight={editorSize.h}
-          />
-        ) : tab === 'gps' ? (
+        <div className={tab === 'gps' ? 'flex-1 overflow-hidden flex flex-col' : 'hidden'}>
           <GpsMapView
             areas={areas}
             positions={positions}
@@ -73,7 +62,8 @@ export function MapPageClient({ projectId, backgroundUrl, areas, positions, pois
             calibration={calibration}
             backgroundUrl={backgroundUrl}
           />
-        ) : (
+        </div>
+        <div className={tab === 'live' ? 'flex-1 overflow-hidden flex flex-col' : 'hidden'}>
           <MapView
             projectId={projectId}
             backgroundUrl={backgroundUrl}
@@ -82,6 +72,21 @@ export function MapPageClient({ projectId, backgroundUrl, areas, positions, pois
             pois={pois}
             categories={categories}
           />
+        </div>
+        {canAdmin && (
+          <div className={tab === 'editor' ? 'flex-1 overflow-hidden flex flex-col' : 'hidden'}>
+            <MapEditor
+              projectId={projectId}
+              backgroundUrl={backgroundUrl}
+              areas={areas}
+              positions={positions}
+              pois={pois}
+              categories={categories}
+              calibration={calibration}
+              canvasWidth={editorSize.w}
+              canvasHeight={editorSize.h}
+            />
+          </div>
         )}
       </div>
     </div>
