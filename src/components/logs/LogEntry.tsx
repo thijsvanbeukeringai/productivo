@@ -49,29 +49,48 @@ export function LogEntry({ log, number, subjects, areas, teams, busyTeamIds, mem
     ? 'bg-red-50 dark:bg-red-950/20'
     : 'bg-green-50 dark:bg-green-950/20'
 
+  function dispatch(logId: string, deleted = false) {
+    window.dispatchEvent(new CustomEvent('log-mutated', { detail: { logId, deleted } }))
+  }
+
   function handleToggleStatus() {
-    startToggle(async () => { await toggleLogStatus(log.id, log.status) })
+    startToggle(async () => {
+      await toggleLogStatus(log.id, log.status)
+      dispatch(log.id)
+    })
   }
 
   function handleInlineUpdate(field: 'subject_id' | 'assigned_user_id', value: string) {
-    startUpdate(async () => { await updateLog(log.id, { [field]: value || null }) })
+    startUpdate(async () => {
+      await updateLog(log.id, { [field]: value || null })
+      dispatch(log.id)
+    })
   }
 
   function handleAddTeam(e: React.ChangeEvent<HTMLSelectElement>) {
     const teamId = e.target.value
     if (!teamId) return
     const team = teams.find(t => t.id === teamId)
-    if (team) startUpdate(async () => { await connectTeamToLog(log.id, teamId, team.number, 'add') })
+    if (team) startUpdate(async () => {
+      await connectTeamToLog(log.id, teamId, team.number, 'add')
+      dispatch(log.id)
+    })
     e.target.value = ''
   }
 
   function handleRemoveTeam(teamId: string, teamNumber: number) {
-    startUpdate(async () => { await connectTeamToLog(log.id, teamId, teamNumber, 'remove') })
+    startUpdate(async () => {
+      await connectTeamToLog(log.id, teamId, teamNumber, 'remove')
+      dispatch(log.id)
+    })
   }
 
   function handleDelete() {
     if (confirm(`Incident ${number} verwijderen?`)) {
-      startUpdate(async () => { await deleteLog(log.id) })
+      startUpdate(async () => {
+        await deleteLog(log.id)
+        dispatch(log.id, true)
+      })
     }
   }
 

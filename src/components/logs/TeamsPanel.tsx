@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { updateTeam } from '@/lib/actions/settings.actions'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
 import type { Team, Log } from '@/types/app.types'
 
@@ -33,9 +34,10 @@ interface TeamEditProps {
   status: TeamStatus
   projectId: string
   onClose: () => void
+  onSave: (updated: Team) => void
 }
 
-function TeamEditPopup({ team, status, projectId, onClose }: TeamEditProps) {
+function TeamEditPopup({ team, status, projectId, onClose, onSave }: TeamEditProps) {
   const [memberText, setMemberText] = useState(team.member_names.join('\n'))
   const [isActive, setIsActive] = useState(team.is_active)
   const [isStandby, setIsStandby] = useState(team.is_standby)
@@ -43,6 +45,8 @@ function TeamEditPopup({ team, status, projectId, onClose }: TeamEditProps) {
 
   function handleSave() {
     const memberNames = memberText.split('\n').map(n => n.trim()).filter(Boolean)
+    const updated: Team = { ...team, member_names: memberNames, is_active: isActive, is_standby: isStandby }
+    onSave(updated) // optimistic update immediately
     startSave(async () => {
       await updateTeam(team.id, projectId, { member_names: memberNames, is_active: isActive, is_standby: isStandby })
       onClose()
@@ -144,8 +148,27 @@ function TeamEditPopup({ team, status, projectId, onClose }: TeamEditProps) {
 }
 
 // ── Teams Panel ──────────────────────────────────────────────
-export function TeamsPanel({ teams, liveLogs, projectId }: Props) {
+export function TeamsPanel({ teams: initialTeams, liveLogs, projectId }: Props) {
+  const [teams, setTeams] = useState<Team[]>(initialTeams)
   const [editingTeam, setEditingTeam] = useState<Team | null>(null)
+
+  // Sync if parent re-renders with new teams (e.g. after page navigation)
+  useEffect(() => { setTeams(initialTeams) }, [initialTeams])
+
+  // Realtime: pick up team changes from other users
+  useEffect(() => {
+    const supabase = createClient()
+    const ch = supabase.channel(`teams-panel-${projectId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'teams', filter: `project_id=eq.${projectId}` },
+        (p) => setTeams(prev => prev.map(t => t.id === p.new.id ? { ...t, ...p.new } : t)))
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [projectId])
+
+  function handleTeamSave(updated: Team) {
+    setTeams(prev => prev.map(t => t.id === updated.id ? updated : t))
+    setEditingTeam(null)
+  }
 
   const busyTeamIds = new Set(
     liveLogs.filter(l => l.status === 'open').flatMap(l => l.team_ids || [])
@@ -198,6 +221,7 @@ export function TeamsPanel({ teams, liveLogs, projectId }: Props) {
           status={getTeamStatus(editingTeam, busyTeamIds)}
           projectId={projectId}
           onClose={() => setEditingTeam(null)}
+          onSave={handleTeamSave}
         />
       )}
     </>

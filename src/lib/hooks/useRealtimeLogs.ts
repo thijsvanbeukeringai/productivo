@@ -28,7 +28,7 @@ export function useRealtimeLogs(projectId: string, initialLogs: Log[]) {
     setLogs(initialLogs)
   }, [initialLogs])
 
-  // Immediate add when this browser submits a log (no realtime delay)
+  // Immediate update when this browser creates or mutates a log (no realtime delay)
   useEffect(() => {
     function onLogCreated(e: Event) {
       const logId = (e as CustomEvent<{ logId: string }>).detail?.logId
@@ -37,8 +37,23 @@ export function useRealtimeLogs(projectId: string, initialLogs: Log[]) {
         if (log) setLogs(prev => prev.some(l => l.id === log.id) ? prev : [log, ...prev])
       })
     }
+    function onLogMutated(e: Event) {
+      const { logId, deleted } = (e as CustomEvent<{ logId: string; deleted?: boolean }>).detail || {}
+      if (!logId) return
+      if (deleted) {
+        setLogs(prev => prev.filter(l => l.id !== logId))
+        return
+      }
+      fetchFullLog(logId).then(log => {
+        if (log) setLogs(prev => prev.map(l => l.id === logId ? log : l))
+      })
+    }
     window.addEventListener('log-created', onLogCreated)
-    return () => window.removeEventListener('log-created', onLogCreated)
+    window.addEventListener('log-mutated', onLogMutated)
+    return () => {
+      window.removeEventListener('log-created', onLogCreated)
+      window.removeEventListener('log-mutated', onLogMutated)
+    }
   }, [fetchFullLog])
 
   useEffect(() => {
