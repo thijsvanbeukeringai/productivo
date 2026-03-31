@@ -68,14 +68,14 @@ export async function getDashboardStats(projectId: string): Promise<DashboardSta
     supabase.from('areas').select('*').eq('project_id', projectId).order('name'),
     supabase.from('enforcement_counters').select('*, subject:subjects(*)').eq('project_id', projectId).eq('shift_date', shiftDate),
     supabase.from('subjects').select('id, name').eq('project_id', projectId).eq('is_active', true).order('name'),
-    supabase.from('logs').select('area_id, subject_id, incident_text').eq('project_id', projectId),
+    supabase.from('logs').select('area_id, subject_id').eq('project_id', projectId),
     supabase.from('logs').select('created_at').eq('project_id', projectId).gte('created_at', shiftStart),
     supabase.from('logs').select('id, log_number, incident_text, priority, created_at, subject:subjects(name, color), area:areas(name)').eq('project_id', projectId).eq('status', 'open').order('created_at', { ascending: false }).limit(5),
     supabase.from('logs').select('id, incident_text, created_at, subject:subjects(name), area:areas(name)').eq('project_id', projectId).eq('status', 'open').eq('priority', 'high').order('created_at', { ascending: false }).limit(10),
     supabase.from('logs').select('id', { count: 'exact', head: true }).eq('project_id', projectId).gte('created_at', shiftStart),
     supabase.from('logs').select('id', { count: 'exact', head: true }).eq('project_id', projectId).eq('status', 'open').gte('created_at', shiftStart),
     supabase.from('logs').select('id', { count: 'exact', head: true }).eq('project_id', projectId).eq('status', 'open').eq('priority', 'high'),
-    supabase.from('logs').select('area_id, incident_text').eq('project_id', projectId).gte('created_at', thirtyMinutesAgo),
+    supabase.from('logs').select('area_id').eq('project_id', projectId).gte('created_at', thirtyMinutesAgo),
   ])
 
   const areas = areasRes.data || []
@@ -84,40 +84,22 @@ export async function getDashboardStats(projectId: string): Promise<DashboardSta
   const shiftLogs = shiftLogsRes.data || []
   const recentLogs = recentLogsRes.data || []
 
-  // Per-area counts (all-time)
+  // Per-area counts (all-time) — use area_id column only
   const areaCounts: Record<string, number> = {}
   for (const log of allLogs) {
-    const matched = new Set<string>()
-    if (log.area_id) matched.add(log.area_id)
-    const lower = (log.incident_text || '').toLowerCase()
-    for (const area of areas) {
-      if (lower.includes(`@${area.name.toLowerCase()}`)) matched.add(area.id)
-    }
-    for (const id of matched) areaCounts[id] = (areaCounts[id] || 0) + 1
+    if (log.area_id) areaCounts[log.area_id] = (areaCounts[log.area_id] || 0) + 1
   }
 
-  // Per-subject counts
+  // Per-subject counts — use subject_id column only
   const subjectCounts: Record<string, number> = {}
   for (const log of allLogs) {
-    const matched = new Set<string>()
-    if (log.subject_id) matched.add(log.subject_id)
-    const lower = (log.incident_text || '').toLowerCase()
-    for (const subject of subjects) {
-      if (lower.includes(`@${subject.name.toLowerCase()}`)) matched.add(subject.id)
-    }
-    for (const id of matched) subjectCounts[id] = (subjectCounts[id] || 0) + 1
+    if (log.subject_id) subjectCounts[log.subject_id] = (subjectCounts[log.subject_id] || 0) + 1
   }
 
   // Recent area counts (last 30 min)
   const recentAreaCounts: Record<string, number> = {}
   for (const log of recentLogs) {
-    const matched = new Set<string>()
-    if (log.area_id) matched.add(log.area_id)
-    const lower = (log.incident_text || '').toLowerCase()
-    for (const area of areas) {
-      if (lower.includes(`@${area.name.toLowerCase()}`)) matched.add(area.id)
-    }
-    for (const id of matched) recentAreaCounts[id] = (recentAreaCounts[id] || 0) + 1
+    if (log.area_id) recentAreaCounts[log.area_id] = (recentAreaCounts[log.area_id] || 0) + 1
   }
 
   // Logs per hour (current shift)
@@ -137,17 +119,9 @@ export async function getDashboardStats(projectId: string): Promise<DashboardSta
     if (idx >= 0 && idx < logsByHour.length) logsByHour[idx]++
   }
 
-  // Medical count
+  // Medical count — computed from already-fetched allLogs + subjects (no extra round trip)
   const medicalSubject = subjects.find(s => s.name.toLowerCase() === 'medical')
-  let medicalLogs = 0
-  if (medicalSubject) {
-    const { count } = await supabase
-      .from('logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('project_id', projectId)
-      .eq('subject_id', medicalSubject.id)
-    medicalLogs = count ?? 0
-  }
+  const medicalLogs = medicalSubject ? (subjectCounts[medicalSubject.id] || 0) : 0
 
   // Normalize latest logs (supabase returns joined rows as objects or arrays)
   const latestLogs = (latestLogsRes.data || []).map(log => ({
