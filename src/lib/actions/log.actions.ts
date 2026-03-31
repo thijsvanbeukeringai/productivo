@@ -5,6 +5,28 @@ import { createClient } from '@/lib/supabase/server'
 import type { LogPriority, EnforcementType } from '@/types/app.types'
 import { createTagNotifications, createAssignNotification } from './notification.actions'
 
+async function broadcastLogChange(projectId: string, logId: string, action: 'insert' | 'update' | 'delete') {
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      },
+      body: JSON.stringify({
+        messages: [{
+          topic: `realtime:project-${projectId}-logs`,
+          event: 'log_changed',
+          payload: { logId, action },
+        }],
+      }),
+    })
+  } catch {
+    // Non-critical: realtime broadcast failure should not break the action
+  }
+}
+
 export async function createLog(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -57,6 +79,7 @@ export async function createLog(formData: FormData) {
       : Promise.resolve(),
   ])
 
+  await broadcastLogChange(projectId, log.id, 'insert')
   revalidatePath(`/project/${projectId}`)
   return { data: log }
 }
@@ -87,6 +110,7 @@ export async function updateLog(logId: string, updates: {
 
   if (error) return { error: error.message }
 
+  await broadcastLogChange(data.project_id, logId, 'update')
   revalidatePath(`/project/${data.project_id}`)
   return { data }
 }
@@ -151,6 +175,7 @@ export async function addFollowup(formData: FormData) {
     }
   }
 
+  await broadcastLogChange(log.project_id, logId, 'update')
   revalidatePath(`/project/${log.project_id}`)
   return { data }
 }
@@ -193,6 +218,7 @@ export async function connectTeamToLog(logId: string, teamId: string, teamNumber
     display_name_snapshot: displayName,
   })
 
+  await broadcastLogChange(log.project_id, logId, 'update')
   revalidatePath(`/project/${log.project_id}`)
   return { data: true }
 }
@@ -234,6 +260,7 @@ export async function deleteLog(logId: string) {
   const { error } = await supabase.rpc('delete_log_cascade', { p_log_id: logId })
   if (error) return { error: error.message }
 
+  await broadcastLogChange(log.project_id, logId, 'delete')
   revalidatePath(`/project/${log.project_id}`)
   return { data: true }
 }

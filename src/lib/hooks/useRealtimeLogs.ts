@@ -56,39 +56,27 @@ export function useRealtimeLogs(projectId: string, initialLogs: Log[]) {
     }
   }, [fetchFullLog])
 
+  // Broadcast channel: receives log_changed events from server actions (works across all users)
   useEffect(() => {
     const supabase = createClient()
 
     const channel = supabase
-      .channel(`logs:${projectId}`)
+      .channel(`project-${projectId}-logs`)
       .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'logs' },
-        async (payload) => {
-          if (payload.new.project_id !== projectId) return
-          const fullLog = await fetchFullLog(payload.new.id)
-          if (fullLog) {
+        'broadcast',
+        { event: 'log_changed' },
+        async ({ payload }: { payload: { logId: string; action: 'insert' | 'update' | 'delete' } }) => {
+          const { logId, action } = payload
+          if (!logId) return
+          if (action === 'delete') {
+            setLogs(prev => prev.filter(l => l.id !== logId))
+            return
+          }
+          const fullLog = await fetchFullLog(logId)
+          if (!fullLog) return
+          if (action === 'insert') {
             setLogs(prev => prev.some(l => l.id === fullLog.id) ? prev : [fullLog, ...prev])
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'logs' },
-        async (payload) => {
-          if (payload.new.project_id !== projectId) return
-          const fullLog = await fetchFullLog(payload.new.id)
-          if (fullLog) {
-            setLogs(prev => prev.map(l => l.id === fullLog.id ? fullLog : l))
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'log_followups' },
-        async (payload) => {
-          const fullLog = await fetchFullLog(payload.new.log_id)
-          if (fullLog && fullLog.project_id === projectId) {
+          } else {
             setLogs(prev => prev.map(l => l.id === fullLog.id ? fullLog : l))
           }
         }

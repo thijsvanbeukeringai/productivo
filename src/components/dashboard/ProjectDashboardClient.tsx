@@ -33,16 +33,11 @@ export function ProjectDashboardClient({ projectId, initialStats, calibration, b
     })
   }, [projectId])
 
-  // Subscribe to log changes via Supabase realtime
+  // Subscribe to log changes via Broadcast (works cross-user, server actions send these)
   useEffect(() => {
     const supabase = createClient()
-    const ch = supabase.channel(`dashboard-logs-${projectId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'logs',
-        filter: `project_id=eq.${projectId}`,
-      }, () => refresh())
+    const ch = supabase.channel(`project-${projectId}-logs`)
+      .on('broadcast', { event: 'log_changed' }, () => refresh())
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [projectId, refresh])
