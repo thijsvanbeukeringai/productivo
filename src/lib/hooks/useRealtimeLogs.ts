@@ -63,28 +63,20 @@ export function useRealtimeLogs(projectId: string, initialLogs: Log[]) {
       .channel(`logs:${projectId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'logs',
-          filter: `project_id=eq.${projectId}`,
-        },
+        { event: 'INSERT', schema: 'public', table: 'logs' },
         async (payload) => {
+          if (payload.new.project_id !== projectId) return
           const fullLog = await fetchFullLog(payload.new.id)
           if (fullLog) {
-            setLogs(prev => [fullLog, ...prev])
+            setLogs(prev => prev.some(l => l.id === fullLog.id) ? prev : [fullLog, ...prev])
           }
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'logs',
-          filter: `project_id=eq.${projectId}`,
-        },
+        { event: 'UPDATE', schema: 'public', table: 'logs' },
         async (payload) => {
+          if (payload.new.project_id !== projectId) return
           const fullLog = await fetchFullLog(payload.new.id)
           if (fullLog) {
             setLogs(prev => prev.map(l => l.id === fullLog.id ? fullLog : l))
@@ -93,15 +85,10 @@ export function useRealtimeLogs(projectId: string, initialLogs: Log[]) {
       )
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'log_followups',
-        },
+        { event: 'INSERT', schema: 'public', table: 'log_followups' },
         async (payload) => {
-          // Refresh the parent log to include new followup
           const fullLog = await fetchFullLog(payload.new.log_id)
-          if (fullLog) {
+          if (fullLog && fullLog.project_id === projectId) {
             setLogs(prev => prev.map(l => l.id === fullLog.id ? fullLog : l))
           }
         }
