@@ -1,13 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useTransition } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { getAssignedLogs } from '@/lib/actions/log.actions'
 import { LogEntry } from './LogEntry'
 import type { Log, Subject, Area, MemberOption, Team, DisplayMode } from '@/types/app.types'
 import { useTranslations } from '@/lib/i18n/LanguageContext'
 
 interface Props {
-  logs: Log[]          // only the assigned open logs
+  initialLogs: Log[]
   allLogs: Log[]       // full log list to compute busyTeamIds
+  projectId: string
+  userId: string
   subjects: Subject[]
   areas: Area[]
   teams: Team[]
@@ -16,9 +20,40 @@ interface Props {
   displayMode: DisplayMode
 }
 
-export function AssignedLogsBanner({ logs, allLogs, subjects, areas, teams, members, canEdit, displayMode }: Props) {
+export function AssignedLogsBanner({ initialLogs, allLogs, projectId, userId, subjects, areas, teams, members, canEdit, displayMode }: Props) {
   const T = useTranslations()
   const [showPopup, setShowPopup] = useState(false)
+  const [logs, setLogs] = useState<Log[]>(initialLogs)
+  const [, startTransition] = useTransition()
+
+  const refresh = () => {
+    startTransition(async () => {
+      const updated = await getAssignedLogs(projectId, userId)
+      setLogs(updated as unknown as Log[])
+    })
+  }
+
+  // Listen to realtime_pings — same mechanism as logbook feed
+  useEffect(() => {
+    const supabase = createClient()
+    const ch = supabase.channel(`assigned-pings-${projectId}-${userId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'realtime_pings',
+        filter: `project_id=eq.${projectId}`,
+      }, () => refresh())
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, userId])
+
+  // Also update when this user mutates a log themselves
+  useEffect(() => {
+    window.addEventListener('log-mutated', refresh)
+    return () => window.removeEventListener('log-mutated', refresh)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (logs.length === 0) return null
 

@@ -86,8 +86,10 @@ export default async function LogbookPage({ params, searchParams }: PageProps) {
   return (
     <>
       <AssignedLogsBanner
-        logs={(assignedLogs as unknown as Log[]) || []}
+        initialLogs={(assignedLogs as unknown as Log[]) || []}
         allLogs={(logs as unknown as Log[]) || []}
+        projectId={projectId}
+        userId={userId}
         subjects={subjects}
         areas={areas}
         teams={teams}

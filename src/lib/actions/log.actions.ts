@@ -253,6 +253,18 @@ export async function deleteLog(logId: string) {
   return { data: true }
 }
 
+export async function getAssignedLogs(projectId: string, userId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('logs')
+    .select('id, incident_text, status, priority, created_at, subject_id, area_id, assigned_user_id, tagged_user_ids, log_number, team_ids, image_urls, display_name_snapshot, logged_by, position_id, enforcement_type, enforcement_reason, subject:subjects(id,name,color), area:areas(id,name), assigned_user:profiles!logs_assigned_user_id_fkey(id,full_name,email), logger:profiles!logs_logged_by_fkey(id,full_name,email), followups:log_followups(id,content,created_at,created_by,display_name_snapshot)')
+    .eq('project_id', projectId)
+    .or(`assigned_user_id.eq.${userId},tagged_user_ids.cs.{${userId}}`)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+  return data || []
+}
+
 export async function getLogs(projectId: string, filters?: {
   myLogs?: boolean
   assignedToMe?: boolean
