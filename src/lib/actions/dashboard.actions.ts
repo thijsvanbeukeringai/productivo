@@ -56,7 +56,6 @@ export async function getDashboardStats(projectId: string): Promise<DashboardSta
     areasRes,
     countersRes,
     subjectsRes,
-    allLogsRes,
     shiftLogsRes,
     latestLogsRes,
     highPrioLogsRes,
@@ -68,8 +67,7 @@ export async function getDashboardStats(projectId: string): Promise<DashboardSta
     supabase.from('areas').select('*').eq('project_id', projectId).order('name'),
     supabase.from('enforcement_counters').select('*, subject:subjects(*)').eq('project_id', projectId).eq('shift_date', shiftDate),
     supabase.from('subjects').select('id, name').eq('project_id', projectId).eq('is_active', true).order('name'),
-    supabase.from('logs').select('area_id, subject_id').eq('project_id', projectId),
-    supabase.from('logs').select('created_at').eq('project_id', projectId).gte('created_at', shiftStart),
+    supabase.from('logs').select('area_id, subject_id, created_at').eq('project_id', projectId).gte('created_at', shiftStart),
     supabase.from('logs').select('id, log_number, incident_text, priority, created_at, subject:subjects(name, color), area:areas(name)').eq('project_id', projectId).eq('status', 'open').order('created_at', { ascending: false }).limit(5),
     supabase.from('logs').select('id, incident_text, created_at, subject:subjects(name), area:areas(name)').eq('project_id', projectId).eq('status', 'open').eq('priority', 'high').order('created_at', { ascending: false }).limit(10),
     supabase.from('logs').select('id', { count: 'exact', head: true }).eq('project_id', projectId).gte('created_at', shiftStart),
@@ -80,19 +78,14 @@ export async function getDashboardStats(projectId: string): Promise<DashboardSta
 
   const areas = areasRes.data || []
   const subjects = subjectsRes.data || []
-  const allLogs = allLogsRes.data || []
   const shiftLogs = shiftLogsRes.data || []
   const recentLogs = recentLogsRes.data || []
 
-  // Per-area counts (all-time) — use area_id column only
+  // Per-area and per-subject counts — shift only (no unbounded all-time query)
   const areaCounts: Record<string, number> = {}
-  for (const log of allLogs) {
-    if (log.area_id) areaCounts[log.area_id] = (areaCounts[log.area_id] || 0) + 1
-  }
-
-  // Per-subject counts — use subject_id column only
   const subjectCounts: Record<string, number> = {}
-  for (const log of allLogs) {
+  for (const log of shiftLogs) {
+    if (log.area_id) areaCounts[log.area_id] = (areaCounts[log.area_id] || 0) + 1
     if (log.subject_id) subjectCounts[log.subject_id] = (subjectCounts[log.subject_id] || 0) + 1
   }
 

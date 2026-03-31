@@ -32,6 +32,12 @@ export function LogEntry({ log, number, subjects, areas, teams, busyTeamIds, mem
   const [followupPrefix, setFollowupPrefix] = useState('')
   const [toggling, startToggle] = useTransition()
   const [, startUpdate] = useTransition()
+  const [optimisticStatus, setOptimisticStatus] = useState<'open' | 'closed' | null>(null)
+  const [optimisticSubjectId, setOptimisticSubjectId] = useState<string | null | undefined>(undefined)
+  const [optimisticAssignedUserId, setOptimisticAssignedUserId] = useState<string | null | undefined>(undefined)
+  const displayStatus = optimisticStatus ?? log.status
+  const displaySubjectId = optimisticSubjectId !== undefined ? optimisticSubjectId : log.subject_id
+  const displayAssignedUserId = optimisticAssignedUserId !== undefined ? optimisticAssignedUserId : log.assigned_user_id
 
   const cfg = priorityConfig[log.priority]
   const enforcement = log.enforcement_type ? enforcementConfig[log.enforcement_type] : null
@@ -45,7 +51,7 @@ export function LogEntry({ log, number, subjects, areas, teams, busyTeamIds, mem
   // For advies: available teams filtered to the log's area
   const areaTeams = availableTeams.filter(t => t.area_id === log.area_id)
 
-  const bodyBg = log.status === 'open'
+  const bodyBg = displayStatus === 'open'
     ? 'bg-red-50 dark:bg-red-950/20'
     : 'bg-green-50 dark:bg-green-950/20'
 
@@ -54,15 +60,23 @@ export function LogEntry({ log, number, subjects, areas, teams, busyTeamIds, mem
   }
 
   function handleToggleStatus() {
+    const newStatus = log.status === 'open' ? 'closed' : 'open'
+    setOptimisticStatus(newStatus)
     startToggle(async () => {
       await toggleLogStatus(log.id, log.status)
+      setOptimisticStatus(null)
       dispatch(log.id)
     })
   }
 
   function handleInlineUpdate(field: 'subject_id' | 'assigned_user_id', value: string) {
+    const optimisticValue = value || null
+    if (field === 'subject_id') setOptimisticSubjectId(optimisticValue)
+    else setOptimisticAssignedUserId(optimisticValue)
     startUpdate(async () => {
-      await updateLog(log.id, { [field]: value || null })
+      await updateLog(log.id, { [field]: optimisticValue })
+      if (field === 'subject_id') setOptimisticSubjectId(undefined)
+      else setOptimisticAssignedUserId(undefined)
       dispatch(log.id)
     })
   }
@@ -115,7 +129,7 @@ export function LogEntry({ log, number, subjects, areas, teams, busyTeamIds, mem
     <>
       <div className={cn(
         'rounded-xl border mb-2 overflow-hidden shadow-sm',
-        log.status === 'open' ? 'border-red-200 dark:border-red-900/50' : 'border-green-200 dark:border-green-900/50'
+        displayStatus === 'open' ? 'border-red-200 dark:border-red-900/50' : 'border-green-200 dark:border-green-900/50'
       )}>
 
         {/* ── Header ── */}
@@ -190,12 +204,12 @@ export function LogEntry({ log, number, subjects, areas, teams, busyTeamIds, mem
               disabled={toggling || !canEdit}
               className={cn(
                 'text-xs px-3 py-1 rounded-lg font-semibold transition-colors',
-                log.status === 'closed'
+                displayStatus === 'closed'
                   ? 'bg-green-600 hover:bg-green-700 text-white'
                   : 'bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white'
               )}
             >
-              {log.status === 'closed' ? T.logbook.status_closed : T.logbook.status_open}
+              {displayStatus === 'closed' ? T.logbook.status_closed : T.logbook.status_open}
             </button>
 
             {canEdit && (
@@ -269,10 +283,10 @@ export function LogEntry({ log, number, subjects, areas, teams, busyTeamIds, mem
             {/* Subject chip */}
             <div className="relative">
               <select
-                value={log.subject_id || ''}
+                value={displaySubjectId || ''}
                 onChange={(e) => handleInlineUpdate('subject_id', e.target.value)}
                 disabled={!canEdit}
-                className={chipSelect(!!log.subject_id, true)}
+                className={chipSelect(!!displaySubjectId, true)}
               >
                 <option value="">+ {T.logbook.subject}</option>
                 {subjects.map(s => (
@@ -287,10 +301,10 @@ export function LogEntry({ log, number, subjects, areas, teams, busyTeamIds, mem
             {/* Assigned user chip */}
             <div className="relative">
               <select
-                value={log.assigned_user_id || ''}
+                value={displayAssignedUserId || ''}
                 onChange={(e) => handleInlineUpdate('assigned_user_id', e.target.value)}
                 disabled={!canEdit}
-                className={chipSelect(!!log.assigned_user_id)}
+                className={chipSelect(!!displayAssignedUserId)}
               >
                 <option value="">+ Centralist koppelen</option>
                 {members.map(m => (
