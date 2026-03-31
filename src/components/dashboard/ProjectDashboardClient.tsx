@@ -4,8 +4,9 @@ import { useEffect, useCallback, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getDashboardStats } from '@/lib/actions/dashboard.actions'
 import { EnforcementCounterCards } from './EnforcementCounters'
+import { AreasRealtimeGrid } from '@/components/areas/AreasRealtimeGrid'
 import type { DashboardStats } from '@/lib/actions/dashboard.actions'
-import type { EnforcementCounters } from '@/types/app.types'
+import type { CalibrationPoint, EnforcementCounters } from '@/types/app.types'
 
 const priorityColor: Record<string, string> = {
   high: 'bg-red-500',
@@ -17,10 +18,11 @@ const priorityColor: Record<string, string> = {
 interface Props {
   projectId: string
   initialStats: DashboardStats
+  calibration: CalibrationPoint[]
   backgroundUrl: string | null
 }
 
-export function ProjectDashboardClient({ projectId, initialStats, backgroundUrl }: Props) {
+export function ProjectDashboardClient({ projectId, initialStats, calibration, backgroundUrl }: Props) {
   const [stats, setStats] = useState<DashboardStats>(initialStats)
   const [, startTransition] = useTransition()
 
@@ -94,12 +96,14 @@ export function ProjectDashboardClient({ projectId, initialStats, backgroundUrl 
         )}
       </div>
 
-      {/* Plattegrond */}
-      {backgroundUrl && (
-        <div className="mb-6 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-          <img src={backgroundUrl} alt="Plattegrond" className="w-full h-auto block" />
-        </div>
-      )}
+      {/* Areas overview — live map */}
+      <AreasRealtimeGrid
+        projectId={projectId}
+        initialAreas={areas}
+        recentAreaCounts={recentAreaCounts}
+        calibration={calibration}
+        backgroundUrl={backgroundUrl}
+      />
 
       {/* 4-column bottom row */}
       <div className="grid grid-cols-4 gap-4 mb-6 items-start">

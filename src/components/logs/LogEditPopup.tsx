@@ -164,7 +164,7 @@ export function LogEditPopup({ log, subjects, areas, members, onClose }: Props) 
                 defaultValue={log.subject_id || ''}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">{T.logbook.noOption}</option>
+                <option value=""></option>
                 {subjects.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
@@ -179,7 +179,7 @@ export function LogEditPopup({ log, subjects, areas, members, onClose }: Props) 
                 defaultValue={log.area_id || ''}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">{T.logbook.noOption}</option>
+                <option value=""></option>
                 {areas.map(a => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
@@ -194,7 +194,7 @@ export function LogEditPopup({ log, subjects, areas, members, onClose }: Props) 
                 defaultValue={log.assigned_user_id || ''}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">{T.logbook.noAssignee}</option>
+                <option value=""></option>
                 {members.map(m => (
                   <option key={m.id} value={m.id}>{m.display_name}</option>
                 ))}
@@ -210,7 +210,7 @@ export function LogEditPopup({ log, subjects, areas, members, onClose }: Props) 
                 onChange={e => setEnforcementType(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">{T.logbook.noOption}</option>
+                <option value=""></option>
                 {Object.entries(enforcementConfig).map(([key, cfg]) => (
                   <option key={key} value={key}>{cfg.label}</option>
                 ))}

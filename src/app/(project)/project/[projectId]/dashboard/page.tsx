@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCachedMember } from '@/lib/supabase/session'
 import { getDashboardStats } from '@/lib/actions/dashboard.actions'
 import { ProjectDashboardClient } from '@/components/dashboard/ProjectDashboardClient'
-
+import type { CalibrationPoint } from '@/types/app.types'
 interface PageProps {
   params: Promise<{ projectId: string }>
 }
@@ -17,7 +17,7 @@ export default async function DashboardPage({ params }: PageProps) {
 
   const [member, projectRes, initialStats] = await Promise.all([
     getCachedMember(projectId, session.user.id),
-    supabase.from('projects').select('map_background_url').eq('id', projectId).single(),
+    supabase.from('projects').select('map_calibration, map_background_url').eq('id', projectId).single(),
     getDashboardStats(projectId),
   ])
 
@@ -30,6 +30,7 @@ export default async function DashboardPage({ params }: PageProps) {
       <ProjectDashboardClient
         projectId={projectId}
         initialStats={initialStats}
+        calibration={(projectRes.data.map_calibration as CalibrationPoint[]) ?? []}
         backgroundUrl={projectRes.data.map_background_url ?? null}
       />
     </main>

@@ -178,7 +178,7 @@ export function LogEntryNew({ projectId, subjects, areas, members, teams, positi
           <div>
             <label className="block text-xs text-slate-400 mb-1">{T.logbook.subject}</label>
             <select name="subject_id" value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)} className={selectClass}>
-              <option value="">— Geen —</option>
+              <option value=""></option>
               {subjects.filter(s => s.is_active).map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
@@ -188,7 +188,7 @@ export function LogEntryNew({ projectId, subjects, areas, members, teams, positi
           <div>
             <label className="block text-xs text-slate-400 mb-1">{T.logbook.position}</label>
             <select name="position_id" className={selectClass}>
-              <option value="">— Geen —</option>
+              <option value=""></option>
               {positions.map(p => (
                 <option key={p.id} value={p.id}>
                   Pos. {p.number}{p.name ? ` — ${p.name}` : ''}
@@ -200,7 +200,7 @@ export function LogEntryNew({ projectId, subjects, areas, members, teams, positi
           <div>
             <label className="block text-xs text-slate-400 mb-1">{T.logbook.area}</label>
             <select name="area_id" value={selectedAreaId} onChange={e => setSelectedAreaId(e.target.value)} className={selectClass}>
-              <option value="">— Geen —</option>
+              <option value=""></option>
               {areas.map(a => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -210,7 +210,7 @@ export function LogEntryNew({ projectId, subjects, areas, members, teams, positi
           <div className="col-span-2">
             <label className="block text-xs text-slate-400 mb-1">{T.logbook.assignTo}</label>
             <select name="assigned_user_id" className={selectClass}>
-              <option value="">— Niemand —</option>
+              <option value=""></option>
               {members.map(m => (
                 <option key={m.id} value={m.id}>{m.display_name}</option>
               ))}
@@ -225,7 +225,7 @@ export function LogEntryNew({ projectId, subjects, areas, members, teams, positi
               onChange={e => setEnforcementType(e.target.value)}
               className={selectClass}
             >
-              <option value="">— Geen —</option>
+              <option value=""></option>
               {Object.entries(enforcementConfig).map(([key, cfg]) => (
                 <option key={key} value={key}>{cfg.label}</option>
               ))}
