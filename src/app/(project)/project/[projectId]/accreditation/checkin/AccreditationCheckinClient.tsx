@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { checkInByQrToken, checkOutPerson, markItemIssued } from '@/lib/actions/accreditation.actions'
+import { createClient } from '@/lib/supabase/client'
 
 interface Zone { id: string; name: string; color: string; capacity: number | null }
 interface PersonZone { zone_id: string; accreditation_zones: { name: string; color: string } | null }
@@ -52,6 +53,27 @@ export function AccreditationCheckinClient({
   initialScanLog: ScanLogEntry[]
 }) {
   const [persons, setPersons] = useState<Person[]>(initialPersons)
+
+  // Realtime: pick up check-in/out changes from other devices
+  useEffect(() => {
+    const supabase = createClient()
+    const ch = supabase.channel(`accreditation-persons-${projectId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'accreditation_persons',
+        filter: `project_id=eq.${projectId}`,
+      }, (payload) => {
+        setPersons(prev => prev.map(p =>
+          p.id === payload.new.id
+            ? { ...p, status: payload.new.status, checked_in_at: payload.new.checked_in_at, checked_out_at: payload.new.checked_out_at }
+            : p
+        ))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [projectId])
+
   const [scanInput, setScanInput] = useState('')
   const [scanState, setScanState] = useState<ScanState>('idle')
   const [scanResult, setScanResult] = useState<Person | null>(null)

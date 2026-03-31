@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { adminToggleCheckin, adminCheckinByMemberId } from '@/lib/actions/crew.actions'
 import { useTranslations } from '@/lib/i18n/LanguageContext'
+import { createClient } from '@/lib/supabase/client'
 
 interface Wristband {
   id: string
@@ -67,6 +68,26 @@ export function CheckinClient({ projectId, planningRows: initial, wristbands, ca
   const [allDays, setAllDays] = useState(false)
   const [, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+
+  // Realtime: pick up check-in changes from other devices
+  useEffect(() => {
+    const supabase = createClient()
+    const ch = supabase.channel(`crew-planning-checkin-${projectId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'crew_planning',
+        filter: `project_id=eq.${projectId}`,
+      }, (payload) => {
+        setRows(prev => prev.map(r =>
+          r.id === payload.new.id
+            ? { ...r, checked_in: payload.new.checked_in, checked_in_at: payload.new.checked_in_at }
+            : r
+        ))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [projectId])
 
   // QR scan state
   const [scanValue, setScanValue] = useState('')

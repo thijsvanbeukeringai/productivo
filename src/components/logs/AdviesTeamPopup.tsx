@@ -21,7 +21,10 @@ export function AdviesTeamPopup({ logId, logAreaId, areas, availableTeams, areaT
   const teamsToShow = logAreaId ? areaTeams : availableTeams
 
   function handleSelect(team: Team) {
-    startAdd(async () => { await connectTeamToLog(logId, team.id, team.number, 'add') })
+    startAdd(async () => {
+      await connectTeamToLog(logId, team.id, team.number, 'add')
+      window.dispatchEvent(new CustomEvent('log-mutated', { detail: { logId } }))
+    })
     onClose()
   }
 

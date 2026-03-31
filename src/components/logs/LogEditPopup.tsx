@@ -95,6 +95,7 @@ export function LogEditPopup({ log, subjects, areas, members, onClose }: Props) 
     if (result.error) {
       setError(result.error)
     } else {
+      window.dispatchEvent(new CustomEvent('log-mutated', { detail: { logId: log.id } }))
       onClose()
     }
   }

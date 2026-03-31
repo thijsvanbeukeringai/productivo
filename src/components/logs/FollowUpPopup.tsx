@@ -78,6 +78,7 @@ export function FollowUpPopup({ logId, onClose, initialContent = '', allFollowup
       if (result.data) {
         setLocalFollowups(prev => [...prev, result.data as LogFollowup])
       }
+      window.dispatchEvent(new CustomEvent('log-mutated', { detail: { logId } }))
       setContent('')
       setMentionedIds([])
       setMentionQuery(null)

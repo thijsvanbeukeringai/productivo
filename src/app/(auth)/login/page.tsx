@@ -1,8 +1,14 @@
 import { login } from '@/lib/actions/auth.actions'
 import { getServerTranslations } from '@/lib/i18n/server'
+import { LoginForm } from './LoginForm'
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
   const T = await getServerTranslations()
+  const { error } = await searchParams
 
   return (
     <div className="w-full max-w-sm">
@@ -19,44 +25,15 @@ export default async function LoginPage() {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{T.auth.ims}</p>
         </div>
 
-        <form action={login} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              {T.auth.email}
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              placeholder={T.auth.emailPlaceholder}
-              className="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
+            {error.includes('Invalid login') || error.includes('invalid_credentials')
+              ? 'Ongeldig e-mailadres of wachtwoord.'
+              : error}
           </div>
+        )}
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              {T.auth.password}
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              placeholder="••••••••"
-              className="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm"
-          >
-            {T.auth.login}
-          </button>
-        </form>
+        <LoginForm loginAction={login} labels={{ email: T.auth.email, password: T.auth.password, login: T.auth.login, emailPlaceholder: T.auth.emailPlaceholder }} />
 
         <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">
           {T.auth.noAccount}

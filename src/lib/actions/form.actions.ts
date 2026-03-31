@@ -139,6 +139,19 @@ export async function unassignForm(projectId: string, formId: string, companyId:
   return { success: true }
 }
 
+// ── Fetch a single form response (for realtime updates) ──
+export async function getFormResponse(responseId: string) {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('form_responses')
+    .select('id, data, submitted_at, crew_members(first_name, last_name)')
+    .eq('id', responseId)
+    .single()
+  if (!data) return null
+  const m = (Array.isArray(data.crew_members) ? data.crew_members[0] : data.crew_members) as { first_name: string; last_name: string } | null
+  return { id: data.id, data: data.data as Record<string, unknown>, submitted_at: data.submitted_at, crew_members: m }
+}
+
 // ── Submit form response per crew member (portal — no auth, token validated) ──
 export async function submitFormResponse(
   token: string,
