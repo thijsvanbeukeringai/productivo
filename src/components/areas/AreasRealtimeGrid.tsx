@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { AreaCard } from './AreaCard'
@@ -8,14 +8,17 @@ import type { Area, CalibrationPoint } from '@/types/app.types'
 
 const MAP_HEIGHT = 576
 
-const DashboardGpsMap = dynamic(() => import('@/components/map/DashboardGpsMap'), {
-  ssr: false,
-  loading: () => (
-    <div style={{ height: MAP_HEIGHT }} className="flex items-center justify-center bg-slate-100 text-sm text-slate-400">
-      Kaart laden...
-    </div>
-  ),
-})
+const MapCanvas = dynamic(
+  () => import('@/components/map/MapCanvas').then(m => m.MapCanvas),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ height: MAP_HEIGHT }} className="flex items-center justify-center bg-slate-100 dark:bg-slate-700 text-sm text-slate-400">
+        Kaart laden...
+      </div>
+    ),
+  }
+)
 
 interface Props {
   projectId: string
@@ -25,8 +28,21 @@ interface Props {
   backgroundUrl: string | null
 }
 
-export function AreasRealtimeGrid({ projectId, initialAreas, recentAreaCounts, calibration, backgroundUrl }: Props) {
+export function AreasRealtimeGrid({ projectId, initialAreas, recentAreaCounts, backgroundUrl }: Props) {
   const [areas, setAreas] = useState<Area[]>(initialAreas)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const [mapWidth, setMapWidth] = useState(0)
+
+  useEffect(() => {
+    const el = mapContainerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      setMapWidth(entries[0].contentRect.width)
+    })
+    ro.observe(el)
+    setMapWidth(el.offsetWidth)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -50,14 +66,21 @@ export function AreasRealtimeGrid({ projectId, initialAreas, recentAreaCounts, c
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 mb-6 overflow-hidden">
       <div className="flex" style={{ height: MAP_HEIGHT }}>
 
-        {/* GPS map — 70% */}
-        <div style={{ flex: '0 0 70%', overflow: 'hidden' }}>
-          <DashboardGpsMap
-            areas={areas}
-            calibration={calibration}
-            backgroundUrl={backgroundUrl}
-            height={MAP_HEIGHT}
-          />
+        {/* Site plan map — 70% */}
+        <div ref={mapContainerRef} style={{ flex: '0 0 70%', overflow: 'hidden' }}>
+          {mapWidth > 0 && (
+            <MapCanvas
+              projectId={projectId}
+              backgroundUrl={backgroundUrl}
+              initialAreas={areas}
+              initialPositions={[]}
+              initialPois={[]}
+              categories={[]}
+              visibleCategoryIds={new Set()}
+              width={mapWidth}
+              height={MAP_HEIGHT}
+            />
+          )}
         </div>
 
         {/* Area list — 30% */}
