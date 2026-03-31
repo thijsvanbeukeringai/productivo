@@ -33,11 +33,16 @@ export function ProjectDashboardClient({ projectId, initialStats, calibration, b
     })
   }, [projectId])
 
-  // Subscribe to log changes via Broadcast (works cross-user, server actions send these)
+  // Cross-user realtime via realtime_pings table (open RLS, reliable)
   useEffect(() => {
     const supabase = createClient()
-    const ch = supabase.channel(`project-${projectId}-logs`)
-      .on('broadcast', { event: 'log_changed' }, () => refresh())
+    const ch = supabase.channel(`dashboard-pings-${projectId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'realtime_pings',
+        filter: `project_id=eq.${projectId}`,
+      }, () => refresh())
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [projectId, refresh])

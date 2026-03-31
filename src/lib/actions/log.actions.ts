@@ -7,23 +7,11 @@ import { createTagNotifications, createAssignNotification } from './notification
 
 async function broadcastLogChange(projectId: string, logId: string, action: 'insert' | 'update' | 'delete') {
   try {
-    await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      },
-      body: JSON.stringify({
-        messages: [{
-          topic: `realtime:project-${projectId}-logs`,
-          event: 'log_changed',
-          payload: { logId, action },
-        }],
-      }),
-    })
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const admin = createAdminClient()
+    await admin.from('realtime_pings').insert({ project_id: projectId, log_id: logId, action })
   } catch {
-    // Non-critical: realtime broadcast failure should not break the action
+    // Non-critical
   }
 }
 

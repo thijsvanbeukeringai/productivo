@@ -56,17 +56,17 @@ export function useRealtimeLogs(projectId: string, initialLogs: Log[]) {
     }
   }, [fetchFullLog])
 
-  // Broadcast channel: receives log_changed events from server actions (works across all users)
+  // Cross-user realtime: listens to realtime_pings inserts (open RLS, reliable postgres_changes)
   useEffect(() => {
     const supabase = createClient()
 
     const channel = supabase
-      .channel(`project-${projectId}-logs`)
+      .channel(`pings-${projectId}`)
       .on(
-        'broadcast',
-        { event: 'log_changed' },
-        async ({ payload }: { payload: { logId: string; action: 'insert' | 'update' | 'delete' } }) => {
-          const { logId, action } = payload
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'realtime_pings', filter: `project_id=eq.${projectId}` },
+        async (payload) => {
+          const { log_id: logId, action } = payload.new as { log_id: string; action: string }
           if (!logId) return
           if (action === 'delete') {
             setLogs(prev => prev.filter(l => l.id !== logId))
