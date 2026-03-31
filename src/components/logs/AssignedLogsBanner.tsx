@@ -104,11 +104,11 @@ export function AssignedLogsBanner({ initialLogs, allLogs, projectId, userId, su
 
             {/* Log list */}
             <div className="overflow-y-auto p-4 space-y-0">
-              {logs.map((log, index) => (
+              {logs.map((log) => (
                 <LogEntry
                   key={log.id}
                   log={log}
-                  number={logs.length - index}
+                  number={log.log_number ?? 0}
                   subjects={subjects}
                   areas={areas}
                   teams={teams}
