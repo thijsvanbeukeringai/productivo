@@ -606,7 +606,7 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
             <p className="text-sm font-semibold text-slate-800 dark:text-white mb-3">Nieuw POI plaatsen</p>
             <div className="space-y-2">
               <input autoFocus value={poiLabel} onChange={e => setPoiLabel(e.target.value)}
-                placeholder="Label (bijv. Hoofdbar)"
+                placeholder={categories.find(c => c.id === poiCategoryId)?.display_style === 'numbered' ? 'Bijv. 1, A1, B3' : 'Label (bijv. Hoofdbar)'}
                 className="w-full px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500" />
               <select value={poiCategoryId} onChange={e => setPoiCategoryId(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
@@ -642,7 +642,7 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
               <p className="text-sm font-semibold text-slate-800 dark:text-white mb-3">POI bewerken</p>
               <div className="space-y-2">
                 <input autoFocus value={editPoiLabel} onChange={e => setEditPoiLabel(e.target.value)}
-                  placeholder="Label"
+                  placeholder={categories.find(c => c.id === editPoiCategoryId)?.display_style === 'numbered' ? 'Bijv. 1, A1, B3' : 'Label'}
                   className="w-full px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500" />
                 <select value={editPoiCategoryId} onChange={e => setEditPoiCategoryId(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500">

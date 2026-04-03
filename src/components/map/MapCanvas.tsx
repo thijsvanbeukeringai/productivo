@@ -410,8 +410,8 @@ export function MapCanvas({
                       shadowColor={isHighlighted ? '#fbbf24' : undefined}
                       shadowBlur={isHighlighted ? pulseBlur : 0}
                       shadowEnabled={isHighlighted} />
-                    <Text text={poi.label} fontSize={10} fontStyle="bold" fill="white"
-                      align="center" width={28} x={-14} y={-6} listening={false} />
+                    <Text text={poi.label} fontSize={9} fontStyle="bold" fill="white"
+                      align="center" width={36} x={-18} y={-5} listening={false} />
                   </>
                 ) : (
                   // Regular dot POI
