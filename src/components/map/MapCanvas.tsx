@@ -421,6 +421,14 @@ export function MapCanvas({
                     shadowBlur={isHighlighted ? pulseBlur : 0}
                     shadowEnabled={isHighlighted} />
                 )}
+                {(isHighlighted || isSelected) && poi.note && (
+                  <Text
+                    text={poi.note}
+                    fontSize={10} fill="white"
+                    shadowColor="black" shadowBlur={5} shadowOpacity={1}
+                    align="center" width={120} x={-60} y={isNumbered ? 10 : 6} listening={false}
+                  />
+                )}
               </Group>
             )
           })}
