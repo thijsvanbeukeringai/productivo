@@ -122,6 +122,7 @@ export interface MapPoi {
   label: string;
   type: PoiType;
   category_id: string | null;
+  note: string | null;
   x: number;
   y: number;
   created_at: string;

@@ -36,11 +36,11 @@ export async function saveMapBackground(projectId: string, url: string | null) {
   return {}
 }
 
-export async function createPoi(projectId: string, label: string, type: PoiType, x: number, y: number, categoryId: string | null) {
+export async function createPoi(projectId: string, label: string, type: PoiType, x: number, y: number, categoryId: string | null, note?: string | null) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('map_pois')
-    .insert({ project_id: projectId, label, type, x, y, category_id: categoryId })
+    .insert({ project_id: projectId, label, type, x, y, category_id: categoryId, note: note || null })
     .select()
     .single()
   if (error) return { error: error.message }
@@ -48,11 +48,11 @@ export async function createPoi(projectId: string, label: string, type: PoiType,
   return { data }
 }
 
-export async function updatePoi(poiId: string, projectId: string, label: string, type: PoiType, x: number, y: number, categoryId: string | null) {
+export async function updatePoi(poiId: string, projectId: string, label: string, type: PoiType, x: number, y: number, categoryId: string | null, note?: string | null) {
   const supabase = await createClient()
   const { error } = await supabase
     .from('map_pois')
-    .update({ label, type, x, y, category_id: categoryId })
+    .update({ label, type, x, y, category_id: categoryId, note: note || null })
     .eq('id', poiId)
   if (error) return { error: error.message }
   revalidatePath(`/project/${projectId}/map`)

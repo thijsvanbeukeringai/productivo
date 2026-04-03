@@ -229,7 +229,7 @@ export function MapCanvas({
     })
   }
 
-  function handleStageClick(e: Konva.KonvaEventObject<MouseEvent>) {
+  function handleStageClick(_e: Konva.KonvaEventObject<MouseEvent>) {
     if (!onCanvasClick) return
     const stage = stageRef.current
     if (!stage) return
@@ -392,7 +392,8 @@ export function MapCanvas({
             const color = cat?.color ?? '#6366f1'
             const isNumbered = cat?.display_style === 'numbered'
             const cp = toStage(poi.x, poi.y)
-            const tooltipText = isNumbered && cat ? `${cat.name} ${poi.label}` : poi.label
+            const baseLabel = isNumbered && cat ? `${cat.name} ${poi.label}` : poi.label
+            const tooltipText = poi.note ? `${baseLabel}\n${poi.note}` : baseLabel
             return (
               <Group key={poi.id} x={cp.x} y={cp.y} draggable={draggable}
                 onClick={e => { e.cancelBubble = true; onPoiClick?.(poi) }}
@@ -425,13 +426,18 @@ export function MapCanvas({
           })}
 
           {/* Tooltip */}
-          {tooltip && (
-            <Group x={tooltip.x} y={tooltip.y} listening={false}>
-              <Rect x={-4} y={-4} width={tooltip.text.length * 7 + 8} height={20}
-                fill="rgba(0,0,0,0.8)" cornerRadius={4} />
-              <Text text={tooltip.text} fontSize={11} fill="white" />
-            </Group>
-          )}
+          {tooltip && (() => {
+            const lines = tooltip.text.split('\n')
+            const maxLen = Math.max(...lines.map(l => l.length))
+            const w = Math.min(maxLen * 7 + 12, 240)
+            const h = lines.length * 15 + 8
+            return (
+              <Group x={tooltip.x} y={tooltip.y} listening={false}>
+                <Rect x={-4} y={-4} width={w} height={h} fill="rgba(0,0,0,0.82)" cornerRadius={4} />
+                <Text text={tooltip.text} fontSize={11} fill="white" width={w - 8} />
+              </Group>
+            )
+          })()}
         </Layer>
       </Stage>
     </div>

@@ -53,6 +53,7 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
   // POI form
   const [poiLabel, setPoiLabel] = useState('')
   const [poiCategoryId, setPoiCategoryId] = useState<string>('')
+  const [poiNote, setPoiNote] = useState('')
   const [pendingPoiPoint, setPendingPoiPoint] = useState<MapPoint | null>(null)
 
   // New area form
@@ -65,6 +66,7 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
   // POI edit form
   const [editPoiLabel, setEditPoiLabel] = useState('')
   const [editPoiCategoryId, setEditPoiCategoryId] = useState<string>('')
+  const [editPoiNote, setEditPoiNote] = useState('')
 
   // Category form
   const [newCatName, setNewCatName] = useState('')
@@ -189,10 +191,10 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
     const poi = pois.find(p => p.id === selectedPoiId)
     if (!poi) return
     setSaving(true)
-    const res = await updatePoi(selectedPoiId, projectId, editPoiLabel.trim(), poi.type as PoiType, poi.x, poi.y, editPoiCategoryId || null)
+    const res = await updatePoi(selectedPoiId, projectId, editPoiLabel.trim(), poi.type as PoiType, poi.x, poi.y, editPoiCategoryId || null, editPoiNote || null)
     setSaving(false)
     if (res.error) { setError(res.error); return }
-    setPois(prev => prev.map(p => p.id === selectedPoiId ? { ...p, label: editPoiLabel.trim(), category_id: editPoiCategoryId || null } : p))
+    setPois(prev => prev.map(p => p.id === selectedPoiId ? { ...p, label: editPoiLabel.trim(), category_id: editPoiCategoryId || null, note: editPoiNote || null } : p))
     setSelectedPoiId(null)
   }
 
@@ -224,11 +226,11 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
   async function handlePoiSave() {
     if (!pendingPoiPoint || !poiLabel.trim()) return
     setSaving(true)
-    const res = await createPoi(projectId, poiLabel.trim(), 'other' as PoiType, pendingPoiPoint.x, pendingPoiPoint.y, poiCategoryId || null)
+    const res = await createPoi(projectId, poiLabel.trim(), 'other' as PoiType, pendingPoiPoint.x, pendingPoiPoint.y, poiCategoryId || null, poiNote || null)
     setSaving(false)
     if (res.error) { setError(res.error); return }
     if (res.data) setPois(prev => [...prev, res.data as MapPoi])
-    setPendingPoiPoint(null); setPoiLabel(''); setPoiCategoryId(''); setMode('none')
+    setPendingPoiPoint(null); setPoiLabel(''); setPoiCategoryId(''); setPoiNote(''); setMode('none')
   }
 
   async function handlePoiDelete(poiId: string) {
@@ -589,7 +591,7 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
           selectedPoiId={selectedPoiId}
           onAreaClick={a => { setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null) }}
           onPositionClick={p => { setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null) }}
-          onPoiClick={p => { setSelectedPoiId(p.id); setEditPoiLabel(p.label); setEditPoiCategoryId(p.category_id ?? ''); setSelectedAreaId(null); setSelectedPositionId(null) }}
+          onPoiClick={p => { setSelectedPoiId(p.id); setEditPoiLabel(p.label); setEditPoiCategoryId(p.category_id ?? ''); setEditPoiNote(p.note ?? ''); setSelectedAreaId(null); setSelectedPositionId(null) }}
           onAreaDragEnd={handleAreaDragEnd}
           onPositionDragEnd={handlePositionDragEnd}
           onPoiDragEnd={handlePoiDragEnd}
@@ -613,6 +615,10 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
+              <textarea value={poiNote} onChange={e => setPoiNote(e.target.value)}
+                placeholder="Notitie (optioneel)..."
+                rows={2}
+                className="w-full px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" />
               <div className="flex gap-2">
                 <button onClick={handlePoiSave} disabled={!poiLabel.trim() || saving}
                   className="flex-1 py-2 text-sm font-medium rounded-lg bg-amber-500 hover:bg-amber-400 text-white disabled:opacity-40">
@@ -645,6 +651,10 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
+                <textarea value={editPoiNote} onChange={e => setEditPoiNote(e.target.value)}
+                  placeholder="Notitie (optioneel)..."
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" />
                 <div className="flex gap-2">
                   <button onClick={handlePoiEdit} disabled={!editPoiLabel.trim() || saving}
                     className="flex-1 py-2 text-sm font-medium rounded-lg bg-amber-500 hover:bg-amber-400 text-white disabled:opacity-40">
