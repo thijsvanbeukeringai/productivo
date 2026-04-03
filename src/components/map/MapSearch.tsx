@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { Area, Position, MapPoi } from '@/types/app.types'
+import type { Area, Position, MapPoi, MapPoiCategory } from '@/types/app.types'
 
 type SearchResult =
   | { kind: 'area'; item: Area }
@@ -12,12 +12,13 @@ interface Props {
   areas: Area[]
   positions: Position[]
   pois: MapPoi[]
+  categories?: MapPoiCategory[]
   onSelectArea?: (area: Area) => void
   onSelectPosition?: (pos: Position) => void
   onSelectPoi?: (poi: MapPoi) => void
 }
 
-export function MapSearch({ areas, positions, pois, onSelectArea, onSelectPosition, onSelectPoi }: Props) {
+export function MapSearch({ areas, positions, pois, categories = [], onSelectArea, onSelectPosition, onSelectPoi }: Props) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -34,7 +35,10 @@ export function MapSearch({ areas, positions, pois, onSelectArea, onSelectPositi
   const results: SearchResult[] = q.length < 1 ? [] : [
     ...areas.filter(a => a.name.toLowerCase().includes(q)).map(a => ({ kind: 'area' as const, item: a })),
     ...positions.filter(p => String(p.number).includes(q) || (p.name?.toLowerCase().includes(q) ?? false)).map(p => ({ kind: 'position' as const, item: p })),
-    ...pois.filter(p => p.label.toLowerCase().includes(q) || p.type.toLowerCase().includes(q)).map(p => ({ kind: 'poi' as const, item: p })),
+    ...pois.filter(p => {
+      const cat = categories.find(c => c.id === p.category_id)
+      return p.label.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (cat?.name.toLowerCase().includes(q) ?? false)
+    }).map(p => ({ kind: 'poi' as const, item: p })),
   ].slice(0, 10)
 
   function select(r: SearchResult) {
@@ -59,6 +63,8 @@ export function MapSearch({ areas, positions, pois, onSelectArea, onSelectPositi
   function getLabel(r: SearchResult) {
     if (r.kind === 'area') return r.item.name
     if (r.kind === 'position') return `Pos. ${r.item.number}${r.item.name ? ` — ${r.item.name}` : ''}`
+    const cat = categories.find(c => c.id === r.item.category_id)
+    if (cat?.display_style === 'numbered') return `${cat.name} ${r.item.label}`
     return r.item.label
   }
 

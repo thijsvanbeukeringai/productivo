@@ -71,6 +71,7 @@ export function MapView({ projectId, backgroundUrl, areas, positions, pois, cate
           areas={areas}
           positions={positions}
           pois={pois}
+          categories={categories}
           onSelectArea={a => { setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(a.id) }}
           onSelectPosition={p => { setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(p.id) }}
           onSelectPoi={p => { setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(p.id) }}

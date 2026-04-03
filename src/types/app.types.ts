@@ -111,6 +111,7 @@ export interface MapPoiCategory {
   project_id: string;
   name: string;
   color: string;
+  display_style: 'dot' | 'numbered';
   sort_order: number;
   created_at: string;
 }

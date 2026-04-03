@@ -123,7 +123,7 @@ export function MapCanvas({
     let frame = 0
     function tick() {
       frame++
-      setPulseBlur(8 + ((Math.sin(frame * 0.07) + 1) / 2) * 32)
+      setPulseBlur(6 + ((Math.sin(frame * 0.07) + 1) / 2) * 52)
       pulseRafRef.current = requestAnimationFrame(tick)
     }
     pulseRafRef.current = requestAnimationFrame(tick)
@@ -376,23 +376,42 @@ export function MapCanvas({
             )
           })}
 
-          {/* POI markers — small circle, tooltip on hover */}
+          {/* POI markers */}
           {visiblePois.map(poi => {
             const isSelected = selectedPoiId === poi.id
             const isHighlighted = highlightedId === poi.id
             const cat = poi.category_id ? categoryMap.get(poi.category_id) : null
             const color = cat?.color ?? '#6366f1'
+            const isNumbered = cat?.display_style === 'numbered'
             const cp = toStage(poi.x, poi.y)
+            const tooltipText = isNumbered && cat ? `${cat.name} ${poi.label}` : poi.label
             return (
               <Group key={poi.id} x={cp.x} y={cp.y} draggable={draggable}
                 onClick={e => { e.cancelBubble = true; onPoiClick?.(poi) }}
-                onMouseEnter={() => setTooltip({ x: cp.x, y: cp.y - 18, text: poi.label })}
+                onMouseEnter={() => setTooltip({ x: cp.x, y: cp.y - (isNumbered ? 22 : 18), text: tooltipText })}
                 onMouseLeave={() => setTooltip(null)}
                 onDragEnd={e => { const img = toImg(e.target.x(), e.target.y()); onPoiDragEnd?.(poi.id, img.x, img.y) }}
               >
-                <Circle radius={7} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
-                  stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1.5}
-                  shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? pulseBlur : 0} shadowEnabled={isHighlighted} />
+                {isNumbered ? (
+                  // Numbered security position — larger circle with number inside
+                  <>
+                    <Circle radius={14}
+                      fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
+                      stroke="white" strokeWidth={isSelected || isHighlighted ? 3 : 2}
+                      shadowColor={isHighlighted ? '#fbbf24' : undefined}
+                      shadowBlur={isHighlighted ? pulseBlur : 0}
+                      shadowEnabled={isHighlighted} />
+                    <Text text={poi.label} fontSize={10} fontStyle="bold" fill="white"
+                      align="center" width={28} x={-14} y={-6} listening={false} />
+                  </>
+                ) : (
+                  // Regular dot POI
+                  <Circle radius={7} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
+                    stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1.5}
+                    shadowColor={isHighlighted ? '#fbbf24' : undefined}
+                    shadowBlur={isHighlighted ? pulseBlur : 0}
+                    shadowEnabled={isHighlighted} />
+                )}
               </Group>
             )
           })}

@@ -69,9 +69,11 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
   // Category form
   const [newCatName, setNewCatName] = useState('')
   const [newCatColor, setNewCatColor] = useState('#6366f1')
+  const [newCatStyle, setNewCatStyle] = useState<'dot' | 'numbered'>('dot')
   const [editingCatId, setEditingCatId] = useState<string | null>(null)
   const [editCatName, setEditCatName] = useState('')
   const [editCatColor, setEditCatColor] = useState('')
+  const [editCatStyle, setEditCatStyle] = useState<'dot' | 'numbered'>('dot')
 
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -269,19 +271,19 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
   async function handleCreateCategory() {
     if (!newCatName.trim()) return
     setSaving(true)
-    const res = await createPoiCategory(projectId, newCatName.trim(), newCatColor)
+    const res = await createPoiCategory(projectId, newCatName.trim(), newCatColor, newCatStyle)
     setSaving(false)
     if (res.error) { setError(res.error); return }
     if (res.data) setCategories(prev => [...prev, res.data as MapPoiCategory])
-    setNewCatName(''); setNewCatColor('#6366f1')
+    setNewCatName(''); setNewCatColor('#6366f1'); setNewCatStyle('dot')
   }
 
   async function handleSaveCategory(catId: string) {
     setSaving(true)
-    const res = await updatePoiCategory(catId, projectId, editCatName, editCatColor)
+    const res = await updatePoiCategory(catId, projectId, editCatName, editCatColor, editCatStyle)
     setSaving(false)
     if (res.error) { setError(res.error); return }
-    setCategories(prev => prev.map(c => c.id === catId ? { ...c, name: editCatName, color: editCatColor } : c))
+    setCategories(prev => prev.map(c => c.id === catId ? { ...c, name: editCatName, color: editCatColor, display_style: editCatStyle } : c))
     setEditingCatId(null)
   }
 
@@ -468,6 +470,16 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
                         ))}
                       </div>
                       <div className="flex gap-1">
+                        <button onClick={() => setEditCatStyle('dot')}
+                          className={`flex-1 py-1 text-[10px] rounded border transition-colors ${editCatStyle === 'dot' ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 border-slate-700 dark:border-slate-200' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
+                          Punt
+                        </button>
+                        <button onClick={() => setEditCatStyle('numbered')}
+                          className={`flex-1 py-1 text-[10px] rounded border transition-colors ${editCatStyle === 'numbered' ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 border-slate-700 dark:border-slate-200' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
+                          Nummer
+                        </button>
+                      </div>
+                      <div className="flex gap-1">
                         <button onClick={() => handleSaveCategory(cat.id)} disabled={saving}
                           className="flex-1 py-1 text-[10px] bg-green-600 hover:bg-green-500 text-white rounded">Opslaan</button>
                         <button onClick={() => setEditingCatId(null)}
@@ -481,7 +493,7 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
                         <span className="text-slate-700 dark:text-slate-200">{cat.name}</span>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditingCatId(cat.id); setEditCatName(cat.name); setEditCatColor(cat.color) }}
+                        <button onClick={() => { setEditingCatId(cat.id); setEditCatName(cat.name); setEditCatColor(cat.color); setEditCatStyle(cat.display_style) }}
                           className="text-slate-400 hover:text-slate-700 dark:hover:text-white px-1">✎</button>
                         <button onClick={() => handleDeleteCategory(cat.id)}
                           className="text-red-400 hover:text-red-600 px-1">✕</button>
@@ -503,6 +515,16 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
                     className={`w-5 h-5 rounded-full border-2 ${newCatColor === c ? 'border-slate-600 dark:border-white' : 'border-transparent'}`}
                     style={{ backgroundColor: c }} />
                 ))}
+              </div>
+              <div className="flex gap-1">
+                <button onClick={() => setNewCatStyle('dot')}
+                  className={`flex-1 py-1 text-[10px] rounded border transition-colors ${newCatStyle === 'dot' ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 border-slate-700 dark:border-slate-200' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
+                  Punt
+                </button>
+                <button onClick={() => setNewCatStyle('numbered')}
+                  className={`flex-1 py-1 text-[10px] rounded border transition-colors ${newCatStyle === 'numbered' ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 border-slate-700 dark:border-slate-200' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
+                  Nummer
+                </button>
               </div>
               <button onClick={handleCreateCategory} disabled={!newCatName.trim() || saving}
                 className="w-full py-1 text-[10px] font-medium bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-white rounded disabled:opacity-40">

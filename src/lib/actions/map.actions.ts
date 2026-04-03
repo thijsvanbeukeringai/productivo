@@ -105,11 +105,11 @@ export async function deleteAreaFromMap(areaId: string, projectId: string) {
 
 // --- Category CRUD ---
 
-export async function createPoiCategory(projectId: string, name: string, color: string) {
+export async function createPoiCategory(projectId: string, name: string, color: string, display_style: 'dot' | 'numbered' = 'dot') {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('map_poi_categories')
-    .insert({ project_id: projectId, name, color })
+    .insert({ project_id: projectId, name, color, display_style })
     .select()
     .single()
   if (error) return { error: error.message }
@@ -117,11 +117,11 @@ export async function createPoiCategory(projectId: string, name: string, color: 
   return { data }
 }
 
-export async function updatePoiCategory(categoryId: string, projectId: string, name: string, color: string) {
+export async function updatePoiCategory(categoryId: string, projectId: string, name: string, color: string, display_style: 'dot' | 'numbered' = 'dot') {
   const supabase = await createClient()
   const { error } = await supabase
     .from('map_poi_categories')
-    .update({ name, color })
+    .update({ name, color, display_style })
     .eq('id', categoryId)
   if (error) return { error: error.message }
   revalidatePath(`/project/${projectId}/map`)
