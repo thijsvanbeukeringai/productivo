@@ -42,8 +42,11 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
     () => new Set(categories.map(c => c.id))
   )
 
-  // Measure the canvas container using ResizeObserver
+  // Measure the canvas container — set immediately from window, then refine with ResizeObserver
   useEffect(() => {
+    // Set a reasonable initial size right away so MapCanvas mounts immediately
+    setSize({ w: window.innerWidth, h: window.innerHeight })
+
     const el = canvasRef.current
     if (!el) return
     const ro = new ResizeObserver(entries => {
@@ -53,11 +56,6 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
       }
     })
     ro.observe(el)
-    // Also set immediately in case ResizeObserver fires synchronously
-    const rect = el.getBoundingClientRect()
-    if (rect.width > 0 && rect.height > 0) {
-      setSize({ w: Math.floor(rect.width), h: Math.floor(rect.height) })
-    }
     return () => ro.disconnect()
   }, [])
 
