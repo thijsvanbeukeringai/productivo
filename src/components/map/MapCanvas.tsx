@@ -75,6 +75,8 @@ export function MapCanvas({
   const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null)
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
   const [hoveredAreaId, setHoveredAreaId] = useState<string | null>(null)
+  const [pulseBlur, setPulseBlur] = useState(20)
+  const pulseRafRef = useRef<number>(0)
   const stageRef = useRef<Konva.Stage>(null)
 
   // Sync props → state (editor saves)
@@ -110,6 +112,61 @@ export function MapCanvas({
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [projectId])
+
+  // Pulsing glow animation for highlighted item
+  useEffect(() => {
+    if (!highlightedId) {
+      cancelAnimationFrame(pulseRafRef.current)
+      setPulseBlur(20)
+      return
+    }
+    let frame = 0
+    function tick() {
+      frame++
+      setPulseBlur(8 + ((Math.sin(frame * 0.07) + 1) / 2) * 32)
+      pulseRafRef.current = requestAnimationFrame(tick)
+    }
+    pulseRafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(pulseRafRef.current)
+  }, [highlightedId])
+
+  // Auto-zoom to highlighted item
+  useEffect(() => {
+    if (!highlightedId || !stageRef.current || !bgImage) return
+    const stage = stageRef.current
+    let ix: number | null = null
+    let iy: number | null = null
+
+    const area = areas.find(a => a.id === highlightedId)
+    if (area?.map_polygon?.length) {
+      ix = area.map_polygon.reduce((s, p) => s + p.x, 0) / area.map_polygon.length
+      iy = area.map_polygon.reduce((s, p) => s + p.y, 0) / area.map_polygon.length
+    }
+    const pos = positions.find(p => p.id === highlightedId)
+    if (pos?.map_point) { ix = pos.map_point.x; iy = pos.map_point.y }
+
+    const poi = pois.find(p => p.id === highlightedId)
+    if (poi) { ix = poi.x; iy = poi.y }
+
+    if (ix === null || iy === null) return
+
+    const scale = bgImage ? Math.min(width / bgImage.width, height / bgImage.height) : 1
+    const bw = bgImage ? bgImage.width * scale : width
+    const bh = bgImage ? bgImage.height * scale : height
+    const bx = (width - bw) / 2
+    const by = (height - bh) / 2
+    const sx = ix * scale + bx
+    const sy = iy * scale + by
+
+    const targetScale = 3
+    stage.to({
+      scaleX: targetScale, scaleY: targetScale,
+      x: width / 2 - sx * targetScale,
+      y: height / 2 - sy * targetScale,
+      duration: 0.5,
+      easing: Konva.Easings.EaseInOut,
+    })
+  }, [highlightedId, bgImage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Background scale/offset (image fits canvas)
   const bgScale = bgImage ? Math.min(width / bgImage.width, height / bgImage.height) : 1
@@ -239,7 +296,7 @@ export function MapCanvas({
                   stroke={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : colors.stroke}
                   strokeWidth={isHighlighted ? 5 : isSelected ? 3 : 2}
                   shadowColor={isHighlighted ? '#fbbf24' : undefined}
-                  shadowBlur={isHighlighted ? 20 : 0}
+                  shadowBlur={isHighlighted ? pulseBlur : 0}
                   shadowEnabled={isHighlighted}
                   draggable={draggable}
                   onClick={e => { e.cancelBubble = true; onAreaClick?.(area) }}
@@ -299,7 +356,7 @@ export function MapCanvas({
               >
                 <Circle radius={12} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : '#3b82f6'}
                   stroke="white" strokeWidth={2}
-                  shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? 18 : 0} shadowEnabled={isHighlighted} />
+                  shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? pulseBlur : 0} shadowEnabled={isHighlighted} />
                 <Text text={String(pos.number)} fontSize={9} fontStyle="bold" fill="white"
                   align="center" width={24} x={-12} y={-5} listening={false} />
               </Group>
@@ -322,7 +379,7 @@ export function MapCanvas({
               >
                 <Circle radius={7} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
                   stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1.5}
-                  shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? 16 : 0} shadowEnabled={isHighlighted} />
+                  shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? pulseBlur : 0} shadowEnabled={isHighlighted} />
               </Group>
             )
           })}
