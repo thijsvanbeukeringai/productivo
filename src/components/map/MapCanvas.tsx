@@ -372,6 +372,14 @@ export function MapCanvas({
                   shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? pulseBlur : 0} shadowEnabled={isHighlighted} />
                 <Text text={String(pos.number)} fontSize={9} fontStyle="bold" fill="white"
                   align="center" width={24} x={-12} y={-5} listening={false} />
+                {(isHighlighted || isSelected) && (
+                  <Text
+                    text={`Pos. ${pos.number}${pos.name ? `\n${pos.name}` : ''}`}
+                    fontSize={11} fontStyle="bold" fill="white"
+                    shadowColor="black" shadowBlur={5} shadowOpacity={1}
+                    align="center" width={100} x={-50} y={16} listening={false}
+                  />
+                )}
               </Group>
             )
           })}
