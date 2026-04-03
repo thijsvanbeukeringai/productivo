@@ -404,18 +404,18 @@ export function MapCanvas({
                 {isNumbered ? (
                   // Numbered security position — larger circle with number inside
                   <>
-                    <Circle radius={14}
+                    <Circle radius={10}
                       fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
                       stroke="white" strokeWidth={isSelected || isHighlighted ? 3 : 2}
                       shadowColor={isHighlighted ? '#fbbf24' : undefined}
                       shadowBlur={isHighlighted ? pulseBlur : 0}
                       shadowEnabled={isHighlighted} />
-                    <Text text={poi.label} fontSize={9} fontStyle="bold" fill="white"
-                      align="center" width={36} x={-18} y={-5} listening={false} />
+                    <Text text={poi.label} fontSize={8} fontStyle="bold" fill="white"
+                      align="center" width={28} x={-14} y={-4} listening={false} />
                   </>
                 ) : (
                   // Regular dot POI
-                  <Circle radius={7} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
+                  <Circle radius={5} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
                     stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1.5}
                     shadowColor={isHighlighted ? '#fbbf24' : undefined}
                     shadowBlur={isHighlighted ? pulseBlur : 0}

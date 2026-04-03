@@ -27,7 +27,7 @@ const getCachedMapData = unstable_cache(
     }
   },
   ['map-data'],
-  { revalidate: 10, tags: ['map-data'] }
+  { revalidate: 10 }
 )
 
 export default async function MapPage({ params }: PageProps) {
