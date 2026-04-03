@@ -30,7 +30,7 @@ export function MapPageClient({ projectId, backgroundUrl, areas, positions, pois
   const [shareSaving, setShareSaving] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const shareUrl = shareToken ? `${window?.location?.origin}/map/${shareToken}` : null
+  const shareUrl = shareToken ? `${window?.location?.origin}/share/${shareToken}` : null
 
   async function handleGenerate() {
     setShareSaving(true)
