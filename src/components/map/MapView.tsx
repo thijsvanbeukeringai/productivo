@@ -54,6 +54,7 @@ export function MapView({ projectId, backgroundUrl, areas, positions, pois, cate
     })
   }
 
+  // Direct canvas click — select item, clear any search highlight
   function handleSelectArea(area: Area) { setSelectedAreaId(area.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(null) }
   function handleSelectPosition(pos: Position) { setSelectedPositionId(pos.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(null) }
   function handleSelectPoi(poi: MapPoi) { setSelectedPoiId(poi.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(null) }
@@ -70,9 +71,9 @@ export function MapView({ projectId, backgroundUrl, areas, positions, pois, cate
           areas={areas}
           positions={positions}
           pois={pois}
-          onSelectArea={a => { setHighlightedId(a.id); handleSelectArea(a) }}
-          onSelectPosition={p => { setHighlightedId(p.id); handleSelectPosition(p) }}
-          onSelectPoi={p => { setHighlightedId(p.id); handleSelectPoi(p) }}
+          onSelectArea={a => { setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(a.id) }}
+          onSelectPosition={p => { setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(p.id) }}
+          onSelectPoi={p => { setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(p.id) }}
         />
 
         {/* Layer toggles */}

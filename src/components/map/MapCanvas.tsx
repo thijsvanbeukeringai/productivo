@@ -144,28 +144,41 @@ export function MapCanvas({
     }
     const pos = positions.find(p => p.id === highlightedId)
     if (pos?.map_point) { ix = pos.map_point.x; iy = pos.map_point.y }
-
     const poi = pois.find(p => p.id === highlightedId)
     if (poi) { ix = poi.x; iy = poi.y }
-
     if (ix === null || iy === null) return
 
-    const scale = bgImage ? Math.min(width / bgImage.width, height / bgImage.height) : 1
-    const bw = bgImage ? bgImage.width * scale : width
-    const bh = bgImage ? bgImage.height * scale : height
-    const bx = (width - bw) / 2
-    const by = (height - bh) / 2
-    const sx = ix * scale + bx
-    const sy = iy * scale + by
+    const imgScale = Math.min(width / bgImage.width, height / bgImage.height)
+    const bx = (width - bgImage.width * imgScale) / 2
+    const by = (height - bgImage.height * imgScale) / 2
+    const sx = ix * imgScale + bx
+    const sy = iy * imgScale + by
 
-    const targetScale = 3
-    stage.to({
-      scaleX: targetScale, scaleY: targetScale,
-      x: width / 2 - sx * targetScale,
-      y: height / 2 - sy * targetScale,
-      duration: 0.5,
-      easing: Konva.Easings.EaseInOut,
-    })
+    const targetScale = 3.5
+    const targetX = width / 2 - sx * targetScale
+    const targetY = height / 2 - sy * targetScale
+
+    const startScale = stage.scaleX()
+    const startX = stage.x()
+    const startY = stage.y()
+    const startTime = performance.now()
+    const duration = 550
+
+    function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
+
+    let raf: number
+    function frame(now: number) {
+      const t = Math.min((now - startTime) / duration, 1)
+      const e = easeInOut(t)
+      stage.scaleX(startScale + (targetScale - startScale) * e)
+      stage.scaleY(startScale + (targetScale - startScale) * e)
+      stage.x(startX + (targetX - startX) * e)
+      stage.y(startY + (targetY - startY) * e)
+      stage.batchDraw()
+      if (t < 1) raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
   }, [highlightedId, bgImage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Background scale/offset (image fits canvas)
