@@ -93,11 +93,11 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
     const offY = (containerSize.h - imgSize.h * bs) / 2
     const tdX = imgX * bs + offX   // position in transform-div space
     const tdY = imgY * bs + offY
-    const targetScale = 4
+    const targetScale = 7
     const targetX = containerSize.w / 2 - tdX * targetScale
     const targetY = containerSize.h / 2 - tdY * targetScale
     const start = performance.now()
-    const duration = 450
+    const duration = 550
     setTransform(cur => {
       const s0 = cur.scale, x0 = cur.x, y0 = cur.y
       function ease(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
@@ -290,13 +290,15 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                   <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
                 {/* Pulsing glow for selected/highlighted */}
-                <filter id="pub-glow-pulse" x="-80%" y="-80%" width="260%" height="260%">
-                  <feGaussianBlur result="blur" stdDeviation={px(3)}>
+                <filter id="pub-glow-pulse" x="-120%" y="-120%" width="340%" height="340%">
+                  <feGaussianBlur result="blur" stdDeviation={px(4)}>
                     <animate attributeName="stdDeviation"
-                      values={`${px(3)};${px(10)};${px(3)}`}
-                      dur="1.8s" repeatCount="indefinite" />
+                      values={`${px(4)};${px(18)};${px(4)}`}
+                      dur="1.2s" repeatCount="indefinite" />
                   </feGaussianBlur>
-                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  <feColorMatrix in="blur" type="matrix"
+                    values="1 0.8 0 0 0  0.9 0.7 0 0 0  0 0 0 0 0  0 0 0 2.5 0" result="coloredBlur" />
+                  <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
               </defs>
 
