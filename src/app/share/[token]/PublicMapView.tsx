@@ -45,17 +45,18 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
 
   useEffect(() => {
     function measure() {
-      const outer = outerRef.current
       const topBar = topBarRef.current
-      if (!outer || !topBar) return
-      const totalH = window.innerHeight
-      const barH = topBar.offsetHeight
-      const w = outer.offsetWidth
-      setCanvasSize({ w, h: totalH - barH })
+      if (!topBar) return
+      const barH = topBar.getBoundingClientRect().height
+      const w = window.innerWidth
+      const h = window.innerHeight - barH
+      setCanvasSize({ w, h })
     }
     measure()
+    // Re-measure after a short delay to catch any late layout shifts
+    const t = setTimeout(measure, 100)
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
   }, [])
 
   function toggleCategory(id: string) {
@@ -71,7 +72,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
   const selectedPoi = pois.find(p => p.id === selectedPoiId)
 
   return (
-    <div ref={outerRef} style={{ display: 'flex', flexDirection: 'column', height: '100svh', background: '#020617', overflow: 'hidden' }}>
+    <div ref={outerRef} style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: '#020617', overflow: 'hidden' }}>
       {/* Top bar */}
       <div ref={topBarRef} className="shrink-0 bg-slate-900 border-b border-slate-700 px-3 py-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">
