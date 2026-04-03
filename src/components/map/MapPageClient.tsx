@@ -22,7 +22,7 @@ interface Props {
 }
 
 export function MapPageClient({ projectId, backgroundUrl, areas, positions, pois, categories, calibration, canAdmin, shareToken: initialShareToken }: Props) {
-  const [tab, setTab] = useState<Tab>('gps')
+  const [tab, setTab] = useState<Tab>('live')
   const containerRef = useRef<HTMLDivElement>(null)
   const [editorSize, setEditorSize] = useState({ w: 1000, h: 700 })
   const [shareToken, setShareToken] = useState<string | null>(initialShareToken)
