@@ -50,6 +50,15 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const dragRef = useRef<{ startX: number; startY: number; tx: number; ty: number } | null>(null)
   const touchRef = useRef<{ touches: React.Touch[]; tx: number; ty: number; scale: number } | null>(null)
   const zoomRafRef = useRef<number>(0)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Auto-clear search highlight after 2.5 s
+  useEffect(() => {
+    if (!highlightedId) return
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
+    highlightTimerRef.current = setTimeout(() => setHighlightedId(null), 2500)
+    return () => { if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current) }
+  }, [highlightedId])
 
   // Measure container for SVG scale calculation
   useEffect(() => {
@@ -224,20 +233,6 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
           }}
         />
 
-        {categories.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {categories.map(cat => {
-              const on = visibleCategoryIds.has(cat.id)
-              return (
-                <button key={cat.id} onClick={() => toggleCategory(cat.id)}
-                  className={`px-2 py-0.5 rounded-full text-xs font-medium transition-all ${on ? 'text-white' : 'text-slate-500 bg-slate-800'}`}
-                  style={on ? { backgroundColor: cat.color } : {}}>
-                  {cat.name}
-                </button>
-              )
-            })}
-          </div>
-        )}
       </div>
 
       {/* Map area */}
@@ -373,7 +368,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                 const cat = poi.category_id ? categoryMap.get(poi.category_id) : null
                 const color = cat?.color ?? '#6366f1'
                 const isNum = cat?.display_style === 'numbered'
-                const r = px(isNum ? NUM_R : DOT_R)
+                const r = px(isHL ? (isNum ? NUM_R * 2.2 : DOT_R * 2.5) : (isNum ? NUM_R : DOT_R))
                 return (
                   <g key={poi.id} transform={`translate(${poi.x},${poi.y})`}
                     style={{ cursor: 'pointer' }}
