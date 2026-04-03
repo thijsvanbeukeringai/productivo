@@ -19,7 +19,7 @@ const STATUS_BADGE: Record<AreaStatus, string> = {
 
 // Fixed screen-pixel sizes for markers (constant regardless of zoom)
 const DOT_R = 2.3      // dot POI radius in screen px  (+15%)
-const NUM_R = 5        // numbered POI radius in screen px (+15% + 5% camera + fits text)
+const NUM_R = 7        // numbered POI radius in screen px (fits 2-char text)
 const POS_R = 4.6      // position marker radius in screen px (+15%)
 const TAP_R = 22       // invisible tap target radius in screen px
 
@@ -388,7 +388,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                       filter={active ? 'url(#pub-glow-pulse)' : undefined} />
                     {isNum && (
                       <text textAnchor="middle" dominantBaseline="middle"
-                        fontSize={px(4)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
+                        fontSize={px(5.5)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
                         {poi.label}
                       </text>
                     )}
