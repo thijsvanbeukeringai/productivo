@@ -397,7 +397,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                         fontSize={px(11)} fontWeight="bold" fill="white"
                         stroke="black" strokeWidth={px(3)} paintOrder="stroke"
                         style={{ pointerEvents: 'none' }}>
-                        {cat ? `${cat.name}${isNum ? ` ${poi.label}` : ''}` : poi.label}
+                        {poi.label}
                       </text>
                     )}
                   </g>
