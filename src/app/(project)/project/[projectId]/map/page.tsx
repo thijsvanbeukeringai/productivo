@@ -40,7 +40,7 @@ export default async function MapPage({ params }: PageProps) {
   const admin = createAdminClient()
   const [member, projectRes, mapData] = await Promise.all([
     getCachedMember(projectId, session.user.id),
-    admin.from('projects').select('map_background_url, map_calibration').eq('id', projectId).single(),
+    admin.from('projects').select('map_background_url, map_calibration, map_share_token').eq('id', projectId).single(),
     getCachedMapData(projectId),
   ])
 
@@ -60,6 +60,7 @@ export default async function MapPage({ params }: PageProps) {
         categories={mapData.categories}
         calibration={(projectRes.data.map_calibration as CalibrationPoint[]) ?? []}
         canAdmin={canAdmin}
+        shareToken={projectRes.data.map_share_token ?? null}
       />
     </main>
   )

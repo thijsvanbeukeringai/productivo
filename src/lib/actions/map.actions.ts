@@ -103,6 +103,25 @@ export async function deleteAreaFromMap(areaId: string, projectId: string) {
   return {}
 }
 
+// --- Share token ---
+
+export async function generateMapShareToken(projectId: string) {
+  const supabase = await createClient()
+  const token = crypto.randomUUID().replace(/-/g, '')
+  const { error } = await supabase.from('projects').update({ map_share_token: token }).eq('id', projectId)
+  if (error) return { error: error.message }
+  revalidatePath(`/project/${projectId}/map`)
+  return { token }
+}
+
+export async function revokeMapShareToken(projectId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('projects').update({ map_share_token: null }).eq('id', projectId)
+  if (error) return { error: error.message }
+  revalidatePath(`/project/${projectId}/map`)
+  return {}
+}
+
 // --- Category CRUD ---
 
 export async function createPoiCategory(projectId: string, name: string, color: string, display_style: 'dot' | 'numbered' = 'dot') {

@@ -59,6 +59,7 @@ export interface Project {
   active_modules: string[];
   map_background_url: string | null;
   map_calibration: CalibrationPoint[] | null;
+  map_share_token: string | null;
   created_at: string;
   updated_at: string;
 }
