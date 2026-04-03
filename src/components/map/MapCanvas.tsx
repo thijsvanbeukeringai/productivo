@@ -367,11 +367,11 @@ export function MapCanvas({
                 onMouseLeave={() => setTooltip(null)}
                 onDragEnd={e => { const img = toImg(e.target.x(), e.target.y()); onPositionDragEnd?.(pos.id, img.x, img.y) }}
               >
-                <Circle radius={12} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : '#3b82f6'}
+                <Circle radius={13} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : '#3b82f6'}
                   stroke="white" strokeWidth={2}
                   shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? pulseBlur : 0} shadowEnabled={isHighlighted} />
-                <Text text={String(pos.number)} fontSize={9} fontStyle="bold" fill="white"
-                  align="center" width={24} x={-12} y={-5} listening={false} />
+                <Text text={String(pos.number)} fontSize={10} fontStyle="bold" fill="white"
+                  align="center" width={26} x={-13} y={-5} listening={false} />
                 {(isHighlighted || isSelected) && (
                   <Text
                     text={`Pos. ${pos.number}${pos.name ? `\n${pos.name}` : ''}`}
