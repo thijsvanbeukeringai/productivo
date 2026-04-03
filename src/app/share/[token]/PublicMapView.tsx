@@ -18,7 +18,7 @@ const STATUS_BADGE: Record<AreaStatus, string> = {
 }
 
 // Fixed screen-pixel sizes for markers (constant regardless of zoom)
-const DOT_R = 2.3      // dot POI radius in screen px  (+15%)
+const DOT_R = 3.5      // dot POI radius in screen px
 const NUM_R = 7        // numbered POI radius in screen px (fits 2-char text)
 const POS_R = 4.6      // position marker radius in screen px (+15%)
 const TAP_R = 22       // invisible tap target radius in screen px
@@ -390,6 +390,14 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                       <text textAnchor="middle" dominantBaseline="middle"
                         fontSize={px(5.5)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
                         {poi.label}
+                      </text>
+                    )}
+                    {active && (
+                      <text y={r + px(12)} textAnchor="middle"
+                        fontSize={px(11)} fontWeight="bold" fill="white"
+                        stroke="black" strokeWidth={px(3)} paintOrder="stroke"
+                        style={{ pointerEvents: 'none' }}>
+                        {cat ? `${cat.name}${isNum ? ` ${poi.label}` : ''}` : poi.label}
                       </text>
                     )}
                   </g>
