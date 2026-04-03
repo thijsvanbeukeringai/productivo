@@ -18,7 +18,7 @@ const STATUS_BADGE: Record<AreaStatus, string> = {
 }
 
 // Fixed screen-pixel sizes for markers (constant regardless of zoom)
-const DOT_R = 3.5      // dot POI radius in screen px
+const DOT_R = 5        // dot POI radius in screen px
 const NUM_R = 7        // numbered POI radius in screen px (fits 2-char text)
 const POS_R = 4.6      // position marker radius in screen px (+15%)
 const TAP_R = 22       // invisible tap target radius in screen px
