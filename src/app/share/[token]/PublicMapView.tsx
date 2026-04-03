@@ -132,8 +132,11 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
     : 1
   const svgScale = svgBaseScale * transform.scale
 
+  // Markers grow 10% per zoom doubling (e.g. 2x zoom → 1.1x bigger, 4x → 1.2x)
+  const zoomBoost = 1 + Math.log2(Math.max(1, transform.scale)) * 0.1
+
   // Convert desired screen px to SVG units
-  const px = (screenPx: number) => screenPx / svgScale
+  const px = (screenPx: number) => (screenPx * zoomBoost) / svgScale
 
   function toggleCategory(id: string) {
     setVisibleCategoryIds(prev => {
