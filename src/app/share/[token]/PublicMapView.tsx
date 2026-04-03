@@ -1,14 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import dynamic from 'next/dynamic'
+import { MapCanvas } from '@/components/map/MapCanvas'
 import { MapSearch } from '@/components/map/MapSearch'
 import type { Area, Position, MapPoi, MapPoiCategory, AreaStatus } from '@/types/app.types'
-
-const MapCanvas = dynamic(
-  () => import('@/components/map/MapCanvas').then(m => m.MapCanvas),
-  { ssr: false }
-)
 
 const STATUS_COLORS: Record<AreaStatus, string> = {
   open: 'bg-green-500',
@@ -33,7 +28,8 @@ interface Props {
 
 export function PublicMapView({ projectId, projectName, backgroundUrl, areas, positions, pois, categories }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null)
+  // Start with a non-zero size (same pattern as MapView) so MapCanvas mounts immediately
+  const [size, setSize] = useState({ w: 800, h: 600 })
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null)
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
@@ -42,20 +38,18 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
     () => new Set(categories.map(c => c.id))
   )
 
-  // Measure the canvas container — set immediately from window, then refine with ResizeObserver
   useEffect(() => {
-    // Set a reasonable initial size right away so MapCanvas mounts immediately
-    setSize({ w: window.innerWidth, h: window.innerHeight })
-
     const el = canvasRef.current
     if (!el) return
     const ro = new ResizeObserver(entries => {
-      const r = entries[0].contentRect
-      if (r.width > 0 && r.height > 0) {
-        setSize({ w: Math.floor(r.width), h: Math.floor(r.height) })
-      }
+      const e = entries[0]
+      const { width, height } = e.contentRect
+      if (width > 0 && height > 0) setSize({ w: Math.floor(width), h: Math.floor(height) })
     })
     ro.observe(el)
+    // Measure immediately
+    const rect = el.getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0) setSize({ w: Math.floor(rect.width), h: Math.floor(rect.height) })
     return () => ro.disconnect()
   }, [])
 
@@ -72,15 +66,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
   const selectedPoi = pois.find(p => p.id === selectedPoiId)
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#020617',
-      }}
-    >
+    <div className="fixed inset-0 flex flex-col bg-slate-950">
       {/* Top bar */}
       <div className="shrink-0 bg-slate-900 border-b border-slate-700 px-3 py-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -121,13 +107,13 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
         )}
       </div>
 
-      {/* Canvas container — fills remaining space */}
+      {/* Canvas container */}
       <div
         ref={canvasRef}
-        style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}
+        className="flex-1 overflow-hidden relative"
         onClick={() => { setSelectedAreaId(null); setSelectedPositionId(null); setSelectedPoiId(null) }}
       >
-        {size && (
+        {size.w > 0 && (
           <MapCanvas
             projectId={projectId}
             backgroundUrl={backgroundUrl}
