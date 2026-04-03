@@ -326,17 +326,17 @@ export function MapCanvas({
                 {hoveredAreaId === area.id ? (
                   // Hover: grote naam + status
                   <Group listening={false}>
-                    <Text x={cx - 60} y={cy - 16} width={120} text={area.name}
-                      fontSize={15} fontStyle="bold" fill="white" align="center"
+                    <Text x={cx - 50} y={cy - 12} width={100} text={area.name}
+                      fontSize={11} fontStyle="bold" fill="white" align="center"
                       shadowColor="black" shadowBlur={6} shadowOpacity={1} />
-                    <Text x={cx - 50} y={cy + 4} width={100} text={AREA_STATUS_LABELS[area.status]}
-                      fontSize={11} fill="white" align="center"
+                    <Text x={cx - 40} y={cy + 3} width={80} text={AREA_STATUS_LABELS[area.status]}
+                      fontSize={9} fill="white" align="center"
                       shadowColor="black" shadowBlur={4} shadowOpacity={0.9} />
                   </Group>
                 ) : (
                   // Standaard: kleine naam
-                  <Text x={cx - 40} y={cy - 7} width={80} text={area.name}
-                    fontSize={11} fontStyle="bold" fill="white" align="center"
+                  <Text x={cx - 35} y={cy - 5} width={70} text={area.name}
+                    fontSize={8} fontStyle="bold" fill="white" align="center"
                     shadowColor="black" shadowBlur={4} shadowOpacity={0.8} listening={false} />
                 )}
               </Group>
@@ -410,8 +410,8 @@ export function MapCanvas({
                       shadowColor={isHighlighted ? '#fbbf24' : undefined}
                       shadowBlur={isHighlighted ? pulseBlur : 0}
                       shadowEnabled={isHighlighted} />
-                    <Text text={poi.label} fontSize={6} fontStyle="bold" fill="white"
-                      align="center" width={18} x={-9} y={-3} listening={false} />
+                    <Text text={poi.label} fontSize={5} fontStyle="bold" fill="white"
+                      align="center" width={12} x={-6} y={-3} listening={false} />
                   </>
                 ) : (
                   // Regular dot POI
