@@ -7,7 +7,7 @@ import type { Area, Position, MapPoi, MapPoiCategory, AreaStatus } from '@/types
 
 const MapCanvas = dynamic(
   () => import('@/components/map/MapCanvas').then(m => m.MapCanvas),
-  { ssr: false, loading: () => <div className="flex-1 bg-slate-900" /> }
+  { ssr: false, loading: () => <div style={{ flex: 1, background: '#0f172a' }} /> }
 )
 
 const STATUS_COLORS: Record<AreaStatus, string> = {
@@ -32,8 +32,9 @@ interface Props {
 }
 
 export function PublicMapView({ projectId, projectName, backgroundUrl, areas, positions, pois, categories }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState({ w: 0, h: 0 })
+  const outerRef = useRef<HTMLDivElement>(null)
+  const topBarRef = useRef<HTMLDivElement>(null)
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null)
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
@@ -43,15 +44,18 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
   )
 
   useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const ro = new ResizeObserver(entries => {
-      const r = entries[0].contentRect
-      setSize({ w: r.width, h: r.height })
-    })
-    ro.observe(el)
-    setSize({ w: el.offsetWidth, h: el.offsetHeight })
-    return () => ro.disconnect()
+    function measure() {
+      const outer = outerRef.current
+      const topBar = topBarRef.current
+      if (!outer || !topBar) return
+      const totalH = window.innerHeight
+      const barH = topBar.offsetHeight
+      const w = outer.offsetWidth
+      setCanvasSize({ w, h: totalH - barH })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
   }, [])
 
   function toggleCategory(id: string) {
@@ -67,12 +71,11 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
   const selectedPoi = pois.find(p => p.id === selectedPoiId)
 
   return (
-    <div className="flex flex-col h-dvh bg-slate-950 overflow-hidden">
+    <div ref={outerRef} style={{ display: 'flex', flexDirection: 'column', height: '100svh', background: '#020617', overflow: 'hidden' }}>
       {/* Top bar */}
-      <div className="shrink-0 bg-slate-900 border-b border-slate-700 px-3 py-2 flex flex-col gap-2">
+      <div ref={topBarRef} className="shrink-0 bg-slate-900 border-b border-slate-700 px-3 py-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-white font-semibold text-sm truncate">{projectName}</span>
-          {/* Area status legend — small */}
           <div className="flex items-center gap-2.5 shrink-0 ml-3">
             {(Object.entries(STATUS_LABELS) as [AreaStatus, string][]).map(([status, label]) => (
               <div key={status} className="flex items-center gap-1">
@@ -83,7 +86,6 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
           </div>
         </div>
 
-        {/* Search */}
         <MapSearch
           areas={areas}
           positions={positions}
@@ -94,7 +96,6 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
           onSelectPoi={p => { setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(p.id) }}
         />
 
-        {/* Layer toggles */}
         {categories.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
             {categories.map(cat => {
@@ -113,11 +114,10 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
 
       {/* Canvas */}
       <div
-        ref={containerRef}
-        className="flex-1 overflow-hidden relative"
+        style={{ position: 'relative', width: canvasSize.w || '100%', height: canvasSize.h || 0, overflow: 'hidden' }}
         onClick={() => { setSelectedAreaId(null); setSelectedPositionId(null); setSelectedPoiId(null) }}
       >
-        {size.w > 0 && (
+        {canvasSize.w > 0 && canvasSize.h > 0 && (
           <MapCanvas
             projectId={projectId}
             backgroundUrl={backgroundUrl}
@@ -126,8 +126,8 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
             initialPois={pois}
             categories={categories}
             visibleCategoryIds={visibleCategoryIds}
-            width={size.w}
-            height={size.h}
+            width={canvasSize.w}
+            height={canvasSize.h}
             selectedAreaId={selectedAreaId}
             selectedPositionId={selectedPositionId}
             selectedPoiId={selectedPoiId}
@@ -138,7 +138,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas, po
           />
         )}
 
-        {/* Detail panel — slides up from bottom on mobile */}
+        {/* Detail panel */}
         {(selectedArea || selectedPos || selectedPoi) && (
           <div
             className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-700 p-4"
