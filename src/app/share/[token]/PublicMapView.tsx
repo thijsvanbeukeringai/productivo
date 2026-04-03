@@ -386,7 +386,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                       filter={active ? 'url(#pub-glow-pulse)' : undefined} />
                     {isNum && (
                       <text textAnchor="middle" dominantBaseline="middle"
-                        fontSize={px(6)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
+                        fontSize={px(4)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
                         {poi.label}
                       </text>
                     )}
