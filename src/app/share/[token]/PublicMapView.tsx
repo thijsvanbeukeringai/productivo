@@ -48,7 +48,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
 
   const mapRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ startX: number; startY: number; tx: number; ty: number } | null>(null)
-  const touchRef = useRef<{ touches: Touch[]; tx: number; ty: number; scale: number } | null>(null)
+  const touchRef = useRef<{ touches: React.Touch[]; tx: number; ty: number; scale: number } | null>(null)
   const zoomRafRef = useRef<number>(0)
 
   // Measure container for SVG scale calculation
