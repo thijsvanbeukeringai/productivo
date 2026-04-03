@@ -49,6 +49,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const mapRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ startX: number; startY: number; tx: number; ty: number } | null>(null)
   const touchRef = useRef<{ touches: Touch[]; tx: number; ty: number; scale: number } | null>(null)
+  const zoomRafRef = useRef<number>(0)
 
   // Measure container for SVG scale calculation
   useEffect(() => {
@@ -82,6 +83,38 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [projectId])
+
+  // Animate zoom to an image-space coordinate
+  function zoomToPoint(imgX: number, imgY: number) {
+    if (!containerSize || !imgSize) return
+    cancelAnimationFrame(zoomRafRef.current)
+    const bs = Math.min(containerSize.w / imgSize.w, containerSize.h / imgSize.h)
+    const offX = (containerSize.w - imgSize.w * bs) / 2
+    const offY = (containerSize.h - imgSize.h * bs) / 2
+    const tdX = imgX * bs + offX   // position in transform-div space
+    const tdY = imgY * bs + offY
+    const targetScale = 4
+    const targetX = containerSize.w / 2 - tdX * targetScale
+    const targetY = containerSize.h / 2 - tdY * targetScale
+    const start = performance.now()
+    const duration = 450
+    setTransform(cur => {
+      const s0 = cur.scale, x0 = cur.x, y0 = cur.y
+      function ease(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
+      function step(now: number) {
+        const t = Math.min((now - start) / duration, 1)
+        const e = ease(t)
+        setTransform({
+          scale: s0 + (targetScale - s0) * e,
+          x: x0 + (targetX - x0) * e,
+          y: y0 + (targetY - y0) * e,
+        })
+        if (t < 1) zoomRafRef.current = requestAnimationFrame(step)
+      }
+      zoomRafRef.current = requestAnimationFrame(step)
+      return cur // no immediate change; animation handles it
+    })
+  }
 
   // SVG scale: ratio between SVG viewBox units and actual screen pixels
   // Used to render markers at constant screen-pixel sizes
@@ -240,8 +273,18 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
               viewBox={`0 0 ${imgSize.w} ${imgSize.h}`}
               preserveAspectRatio="xMidYMid meet">
               <defs>
-                <filter id="pub-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation={px(6)} result="blur" />
+                {/* Static glow for non-selected */}
+                <filter id="pub-glow" x="-80%" y="-80%" width="260%" height="260%">
+                  <feGaussianBlur stdDeviation={px(5)} result="blur" />
+                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                {/* Pulsing glow for selected/highlighted */}
+                <filter id="pub-glow-pulse" x="-80%" y="-80%" width="260%" height="260%">
+                  <feGaussianBlur result="blur" stdDeviation={px(3)}>
+                    <animate attributeName="stdDeviation"
+                      values={`${px(3)};${px(10)};${px(3)}`}
+                      dur="1.8s" repeatCount="indefinite" />
+                  </feGaussianBlur>
                   <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
               </defs>
@@ -251,16 +294,21 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                 const c = AREA_COLORS[area.status]
                 const isHL = highlightedId === area.id
                 const isSel = selectedAreaId === area.id
+                const active = isHL || isSel
                 const pts = area.map_polygon!.map(p => `${p.x},${p.y}`).join(' ')
                 const cx = area.map_polygon!.reduce((s, p) => s + p.x, 0) / area.map_polygon!.length
                 const cy = area.map_polygon!.reduce((s, p) => s + p.y, 0) / area.map_polygon!.length
                 return (
                   <g key={area.id} style={{ cursor: 'pointer' }}
-                    onClick={e => { e.stopPropagation(); setSelectedAreaId(area.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(null) }}>
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSelectedAreaId(area.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(null)
+                      zoomToPoint(cx, cy)
+                    }}>
                     <polygon points={pts} fill={c.fill}
-                      stroke={isHL ? '#fbbf24' : isSel ? '#f59e0b' : c.stroke}
-                      strokeWidth={px(isHL ? 4 : isSel ? 3 : 2)}
-                      filter={isHL ? 'url(#pub-glow)' : undefined} />
+                      stroke={active ? '#fbbf24' : c.stroke}
+                      strokeWidth={px(active ? 4 : 2)}
+                      filter={active ? 'url(#pub-glow-pulse)' : undefined} />
                     <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
                       fontSize={px(13)} fontWeight="bold" fill="white"
                       stroke="black" strokeWidth={px(3)} paintOrder="stroke"
@@ -275,23 +323,27 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
               {initPositions.filter(p => p.map_point).map(pos => {
                 const isHL = highlightedId === pos.id
                 const isSel = selectedPositionId === pos.id
+                const active = isHL || isSel
                 const r = px(POS_R)
                 return (
                   <g key={pos.id} transform={`translate(${pos.map_point!.x},${pos.map_point!.y})`}
                     style={{ cursor: 'pointer' }}
-                    onClick={e => { e.stopPropagation(); setSelectedPositionId(pos.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(null) }}>
-                    {/* Large invisible tap target */}
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSelectedPositionId(pos.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(null)
+                      zoomToPoint(pos.map_point!.x, pos.map_point!.y)
+                    }}>
                     <circle r={px(TAP_R)} fill="transparent" />
-                    <circle r={r} fill={isHL ? '#fbbf24' : isSel ? '#f59e0b' : '#3b82f6'}
-                      stroke="white" strokeWidth={px(2)}
-                      filter={isHL ? 'url(#pub-glow)' : undefined} />
+                    <circle r={r} fill={active ? '#fbbf24' : '#3b82f6'}
+                      stroke="white" strokeWidth={px(active ? 2 : 1.5)}
+                      filter={active ? 'url(#pub-glow-pulse)' : undefined} />
                     <text textAnchor="middle" dominantBaseline="middle"
-                      fontSize={px(8)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
+                      fontSize={px(7)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
                       {pos.number}
                     </text>
-                    {(isHL || isSel) && (
-                      <text y={r + px(14)} textAnchor="middle"
-                        fontSize={px(12)} fontWeight="bold" fill="white"
+                    {active && (
+                      <text y={r + px(12)} textAnchor="middle"
+                        fontSize={px(11)} fontWeight="bold" fill="white"
                         stroke="black" strokeWidth={px(3)} paintOrder="stroke"
                         style={{ pointerEvents: 'none' }}>
                         Pos. {pos.number}{pos.name ? ` — ${pos.name}` : ''}
@@ -305,6 +357,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
               {visiblePois.map(poi => {
                 const isHL = highlightedId === poi.id
                 const isSel = selectedPoiId === poi.id
+                const active = isHL || isSel
                 const cat = poi.category_id ? categoryMap.get(poi.category_id) : null
                 const color = cat?.color ?? '#6366f1'
                 const isNum = cat?.display_style === 'numbered'
@@ -312,15 +365,18 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                 return (
                   <g key={poi.id} transform={`translate(${poi.x},${poi.y})`}
                     style={{ cursor: 'pointer' }}
-                    onClick={e => { e.stopPropagation(); setSelectedPoiId(poi.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(null) }}>
-                    {/* Large invisible tap target */}
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSelectedPoiId(poi.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(null)
+                      zoomToPoint(poi.x, poi.y)
+                    }}>
                     <circle r={px(TAP_R)} fill="transparent" />
-                    <circle r={r} fill={isHL ? '#fbbf24' : isSel ? '#f59e0b' : color}
-                      stroke="white" strokeWidth={px(isSel || isHL ? 2.5 : 1.5)}
-                      filter={isHL ? 'url(#pub-glow)' : undefined} />
+                    <circle r={r} fill={active ? '#fbbf24' : color}
+                      stroke="white" strokeWidth={px(active ? 2 : 1)}
+                      filter={active ? 'url(#pub-glow-pulse)' : undefined} />
                     {isNum && (
                       <text textAnchor="middle" dominantBaseline="middle"
-                        fontSize={px(7)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
+                        fontSize={px(6)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
                         {poi.label}
                       </text>
                     )}
