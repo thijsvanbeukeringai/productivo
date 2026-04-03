@@ -18,9 +18,9 @@ const STATUS_BADGE: Record<AreaStatus, string> = {
 }
 
 // Fixed screen-pixel sizes for markers (constant regardless of zoom)
-const DOT_R = 2        // dot POI radius in screen px
-const NUM_R = 3.5      // numbered POI radius in screen px
-const POS_R = 4        // position marker radius in screen px
+const DOT_R = 2.3      // dot POI radius in screen px  (+15%)
+const NUM_R = 5        // numbered POI radius in screen px (+15% + 5% camera + fits text)
+const POS_R = 4.6      // position marker radius in screen px (+15%)
 const TAP_R = 22       // invisible tap target radius in screen px
 
 interface Props {
@@ -208,9 +208,20 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
 
         <MapSearch
           areas={areas} positions={initPositions} pois={initPois} categories={categories}
-          onSelectArea={a => { setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(a.id) }}
-          onSelectPosition={p => { setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(p.id) }}
-          onSelectPoi={p => { setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(p.id) }}
+          onSelectArea={a => {
+            setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(a.id)
+            const poly = areas.find(ar => ar.id === a.id)?.map_polygon
+            if (poly?.length) zoomToPoint(poly.reduce((s, p) => s + p.x, 0) / poly.length, poly.reduce((s, p) => s + p.y, 0) / poly.length)
+          }}
+          onSelectPosition={p => {
+            setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(p.id)
+            const pt = initPositions.find(pos => pos.id === p.id)?.map_point
+            if (pt) zoomToPoint(pt.x, pt.y)
+          }}
+          onSelectPoi={p => {
+            setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(p.id)
+            zoomToPoint(p.x, p.y)
+          }}
         />
 
         {categories.length > 0 && (
@@ -311,8 +322,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                       filter={active ? 'url(#pub-glow-pulse)' : undefined} />
                     <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
                       fontSize={px(13)} fontWeight="bold" fill="white"
-                      stroke="black" strokeWidth={px(3)} paintOrder="stroke"
-                      style={{ pointerEvents: 'none' }}>
+                      stroke="black" strokeWidth={px(3)} paintOrder="stroke">
                       {area.name}
                     </text>
                   </g>
