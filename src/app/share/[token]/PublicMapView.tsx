@@ -219,6 +219,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
         </div>
 
         <MapSearch
+          className="w-full"
           areas={areas} positions={initPositions} pois={initPois} categories={categories}
           onSelectArea={a => {
             setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(a.id)
