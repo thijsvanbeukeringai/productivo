@@ -75,8 +75,7 @@ export function MapCanvas({
   const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null)
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
   const [hoveredAreaId, setHoveredAreaId] = useState<string | null>(null)
-  const [pulseBlur, setPulseBlur] = useState(20)
-  const pulseRafRef = useRef<number>(0)
+  const konvaAnimRef = useRef<Konva.Animation | null>(null)
   const stageRef = useRef<Konva.Stage>(null)
 
   // Sync props → state (editor saves)
@@ -113,21 +112,20 @@ export function MapCanvas({
     return () => { supabase.removeChannel(ch) }
   }, [projectId])
 
-  // Pulsing glow animation for highlighted item
+  // Pulsing glow — Konva.Animation updates canvas directly, zero React re-renders
   useEffect(() => {
-    if (!highlightedId) {
-      cancelAnimationFrame(pulseRafRef.current)
-      setPulseBlur(20)
-      return
-    }
-    let frame = 0
-    function tick() {
-      frame++
-      setPulseBlur(6 + ((Math.sin(frame * 0.07) + 1) / 2) * 52)
-      pulseRafRef.current = requestAnimationFrame(tick)
-    }
-    pulseRafRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(pulseRafRef.current)
+    konvaAnimRef.current?.stop()
+    konvaAnimRef.current = null
+    if (!highlightedId || !stageRef.current) return
+    const stage = stageRef.current
+    let t = 0
+    konvaAnimRef.current = new Konva.Animation(() => {
+      t += 0.07
+      const blur = 6 + ((Math.sin(t) + 1) / 2) * 52
+      stage.find('.glow-pulse').forEach(n => n.setAttr('shadowBlur', blur))
+    }, stage.getLayers() as unknown as Konva.Layer)
+    konvaAnimRef.current.start()
+    return () => { konvaAnimRef.current?.stop() }
   }, [highlightedId])
 
   // Auto-zoom to highlighted item
@@ -308,8 +306,9 @@ export function MapCanvas({
                   fill={colors.fill}
                   stroke={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : colors.stroke}
                   strokeWidth={isHighlighted ? 5 : isSelected ? 3 : 2}
+                  name={isHighlighted ? 'glow-pulse' : undefined}
                   shadowColor={isHighlighted ? '#fbbf24' : undefined}
-                  shadowBlur={isHighlighted ? pulseBlur : 0}
+                  shadowBlur={isHighlighted ? 20 : 0}
                   shadowEnabled={isHighlighted}
                   draggable={draggable}
                   onClick={e => { e.cancelBubble = true; onAreaClick?.(area) }}
@@ -369,7 +368,8 @@ export function MapCanvas({
               >
                 <Circle radius={14} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : '#3b82f6'}
                   stroke="white" strokeWidth={2}
-                  shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? pulseBlur : 0} shadowEnabled={isHighlighted} />
+                  name={isHighlighted ? 'glow-pulse' : undefined}
+                  shadowColor={isHighlighted ? '#fbbf24' : undefined} shadowBlur={isHighlighted ? 20 : 0} shadowEnabled={isHighlighted} />
                 <Text text={String(pos.number)} fontSize={11} fontStyle="bold" fill="white"
                   align="center" width={28} x={-14} y={-6} listening={false} />
                 {(isHighlighted || isSelected) && (
@@ -407,8 +407,9 @@ export function MapCanvas({
                     <Circle radius={6}
                       fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
                       stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1}
+                      name={isHighlighted ? 'glow-pulse' : undefined}
                       shadowColor={isHighlighted ? '#fbbf24' : undefined}
-                      shadowBlur={isHighlighted ? pulseBlur : 0}
+                      shadowBlur={isHighlighted ? 20 : 0}
                       shadowEnabled={isHighlighted} />
                     <Text text={poi.label} fontSize={5} fontStyle="bold" fill="white"
                       align="center" width={12} x={-6} y={-3} listening={false} />
@@ -417,8 +418,9 @@ export function MapCanvas({
                   // Regular dot POI
                   <Circle radius={3} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
                     stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1.5}
+                    name={isHighlighted ? 'glow-pulse' : undefined}
                     shadowColor={isHighlighted ? '#fbbf24' : undefined}
-                    shadowBlur={isHighlighted ? pulseBlur : 0}
+                    shadowBlur={isHighlighted ? 20 : 0}
                     shadowEnabled={isHighlighted} />
                 )}
                 {(isHighlighted || isSelected) && poi.note && (

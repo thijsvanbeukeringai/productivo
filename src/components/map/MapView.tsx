@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { MapCanvas } from './MapCanvas'
 import { MapSearch } from './MapSearch'
 import type { Area, Position, MapPoi, MapPoiCategory, AreaStatus } from '@/types/app.types'
@@ -27,11 +27,19 @@ interface Props {
 
 export function MapView({ projectId, backgroundUrl, areas, positions, pois, categories }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [size, setSize] = useState({ w: 800, h: 600 })
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null)
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
+
+  // Auto-clear highlight after 2.5s so glow animation stops
+  const setHighlight = useCallback((id: string | null) => {
+    setHighlightedId(id)
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
+    if (id) highlightTimerRef.current = setTimeout(() => setHighlightedId(null), 2500)
+  }, [])
   const [visibleCategoryIds, setVisibleCategoryIds] = useState<Set<string>>(
     () => new Set(categories.map(c => c.id))
   )
@@ -72,9 +80,9 @@ export function MapView({ projectId, backgroundUrl, areas, positions, pois, cate
           positions={positions}
           pois={pois}
           categories={categories}
-          onSelectArea={a => { setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(a.id) }}
-          onSelectPosition={p => { setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(p.id) }}
-          onSelectPoi={p => { setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(p.id) }}
+          onSelectArea={a => { setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlight(a.id) }}
+          onSelectPosition={p => { setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlight(p.id) }}
+          onSelectPoi={p => { setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlight(p.id) }}
         />
 
         {/* Layer toggles */}

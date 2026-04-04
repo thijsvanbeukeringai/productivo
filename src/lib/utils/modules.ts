@@ -18,7 +18,7 @@ export const MODULE_CONFIG: Record<ModuleKey, ModuleConfig> = {
 }
 
 // Always visible regardless of active_modules (settings cannot be disabled)
-export const ALWAYS_VISIBLE: ModuleKey[] = ['settings']
+export const ALWAYS_VISIBLE: ModuleKey[] = ['settings', 'map']
 
 // Modules that can be toggled on/off per project by super admin
 export const TOGGLEABLE_MODULES: ModuleKey[] = ['logbook', 'map', 'guestlist', 'artist', 'machinery', 'briefings', 'forms', 'accreditation']
