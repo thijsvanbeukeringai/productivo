@@ -290,18 +290,16 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
           )}
 
           {imgSize && (
-            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden' }}
+            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
               viewBox={`0 0 ${imgSize.w} ${imgSize.h}`}
-              preserveAspectRatio="xMidYMid meet"
-              overflow="hidden">
+              preserveAspectRatio="xMidYMid meet">
               <defs>
-                {/* Static glow for non-selected */}
-                <filter id="pub-glow" x="-80%" y="-80%" width="260%" height="260%">
-                  <feGaussianBlur stdDeviation={px(5)} result="blur" />
-                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
+                {/* Hard clip to viewBox — prevents filter effects from escaping into header on iOS */}
+                <clipPath id="map-bounds">
+                  <rect x="0" y="0" width={imgSize.w} height={imgSize.h} />
+                </clipPath>
                 {/* Pulsing glow for selected/highlighted */}
-                <filter id="pub-glow-pulse" x="-120%" y="-120%" width="340%" height="340%">
+                <filter id="pub-glow-pulse" x="-40%" y="-40%" width="180%" height="180%">
                   <feGaussianBlur result="blur" stdDeviation={px(4)}>
                     <animate attributeName="stdDeviation"
                       values={`${px(4)};${px(18)};${px(4)}`}
@@ -312,6 +310,9 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                   <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
               </defs>
+
+              {/* All map content clipped to viewBox bounds */}
+              <g clipPath="url(#map-bounds)">
 
               {/* Areas */}
               {areas.filter(a => a.map_polygon && a.map_polygon.length >= 3).map(area => {
@@ -414,6 +415,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                   </g>
                 )
               })}
+              </g>
             </svg>
           )}
         </div>
