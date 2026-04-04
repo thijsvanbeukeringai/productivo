@@ -38,7 +38,7 @@ export function MapSearch({ areas, positions, pois, categories = [], onSelectAre
     ...positions.filter(p => String(p.number).includes(q) || (p.name?.toLowerCase().includes(q) ?? false)).map(p => ({ kind: 'position' as const, item: p })),
     ...pois.filter(p => {
       const cat = categories.find(c => c.id === p.category_id)
-      return p.label.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (cat?.name.toLowerCase().includes(q) ?? false)
+      return p.label.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (cat?.name.toLowerCase().includes(q) ?? false) || (p.note?.toLowerCase().includes(q) ?? false)
     }).map(p => ({ kind: 'poi' as const, item: p })),
   ].slice(0, 10)
 
