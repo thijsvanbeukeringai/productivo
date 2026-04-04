@@ -37,6 +37,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const [areas, setAreas] = useState(initAreas)
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null)
   const [containerSize, setContainerSize] = useState<{ w: number; h: number } | null>(null)
+  const [headerHeight, setHeaderHeight] = useState(96)
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null)
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
@@ -44,11 +45,22 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const visibleCategoryIds = new Set(categories.map(c => c.id))
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
 
+  const headerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ startX: number; startY: number; tx: number; ty: number } | null>(null)
   const touchRef = useRef<{ touches: React.Touch[]; tx: number; ty: number; scale: number } | null>(null)
   const zoomRafRef = useRef<number>(0)
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Measure header height so map sits exactly below it
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setHeaderHeight(el.getBoundingClientRect().height))
+    ro.observe(el)
+    setHeaderHeight(el.getBoundingClientRect().height)
+    return () => ro.disconnect()
+  }, [])
 
   // Auto-clear search highlight after 2.5 s
   useEffect(() => {
@@ -194,10 +206,11 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const visiblePois = initPois.filter(p => !p.category_id || visibleCategoryIds.has(p.category_id))
 
   return (
-    <div className="flex flex-col bg-slate-950" style={{ position: 'fixed', inset: 0, height: '100dvh' }}>
-      {/* Top bar */}
-      <div className="shrink-0 bg-slate-900 border-b border-slate-700 px-3 pb-2 flex flex-col gap-2 z-10"
-        style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
+    <div className="bg-slate-950" style={{ position: 'fixed', inset: 0 }}>
+      {/* Top bar — own fixed layer, always on top regardless of map stacking contexts */}
+      <div ref={headerRef}
+        className="bg-slate-900 border-b border-slate-700 px-3 pb-2 flex flex-col gap-2"
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between">
           <span className="text-white font-semibold text-sm truncate">{projectName}</span>
           <div className="flex items-center gap-2.5 shrink-0 ml-3">
@@ -231,11 +244,17 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
 
       </div>
 
-      {/* Map area */}
+      {/* Map area — fixed layer that starts exactly below the header */}
       <div
         ref={mapRef}
-        className="flex-1 min-h-0 overflow-hidden relative select-none"
-        style={{ cursor: dragRef.current ? 'grabbing' : 'grab', touchAction: 'none' }}
+        className="overflow-hidden select-none"
+        style={{
+          position: 'fixed',
+          top: headerHeight,
+          left: 0, right: 0, bottom: 0,
+          cursor: dragRef.current ? 'grabbing' : 'grab',
+          touchAction: 'none',
+        }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
