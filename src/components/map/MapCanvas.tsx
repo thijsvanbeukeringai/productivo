@@ -463,7 +463,7 @@ export function MapCanvas({
                 {isText ? (
                   // Speech-bubble pin: rounded rect + downward triangle, label inside
                   (() => {
-                    const bW = 36, bH = 22, tipH = 9, tipW = 14, rx = 5
+                    const bW = 44, bH = 16, tipH = 7, tipW = 10, rx = 4
                     const fill = isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color
                     const sw = isSelected || isHighlighted ? 2 : 1.5
                     return (
@@ -487,9 +487,9 @@ export function MapCanvas({
                         <Line points={[tipW / 2, -tipH, 0, 0]} stroke="white" strokeWidth={sw} listening={false} />
                         {/* Label */}
                         <Text text={poi.label}
-                          fontSize={9} fontStyle="bold" fill="white"
+                          fontSize={7} fontStyle="bold" fill="white"
                           shadowColor="rgba(0,0,0,0.5)" shadowBlur={2} shadowOpacity={1}
-                          align="center" width={bW - 6} x={-(bW - 6) / 2} y={-(bH + tipH) + (bH / 2) - 5}
+                          align="center" width={bW - 4} x={-(bW - 4) / 2} y={-(bH + tipH) + (bH / 2) - 4}
                           listening={false} />
                       </>
                     )

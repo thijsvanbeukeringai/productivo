@@ -455,7 +455,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                 const r = isHL ? px(isNum ? NUM_R * 2.2 : DOT_R * 2.5) : pxPoi(isNum ? NUM_R : DOT_R)
                 // Pin path: tip at (0,0), circle of radius pinR centered at (0, -pinR*1.75)
                 // Speech-bubble pin dimensions in SVG units
-                const bW = pxPoi(36), bH = pxPoi(22), tipH = pxPoi(9), tipW = pxPoi(14), rx = pxPoi(5)
+                const bW = pxPoi(44), bH = pxPoi(16), tipH = pxPoi(7), tipW = pxPoi(10), rx = pxPoi(4)
                 return (
                   <g key={poi.id} transform={`translate(${poi.x},${poi.y})`}
                     style={{ cursor: 'pointer' }}
@@ -483,7 +483,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                         {/* Label inside bubble */}
                         <text textAnchor="middle" dominantBaseline="middle"
                           y={-(tipH + bH/2)}
-                          fontSize={pxPoi(9)} fontWeight="bold" fill="white"
+                          fontSize={pxPoi(7)} fontWeight="bold" fill="white"
                           stroke="rgba(0,0,0,0.4)" strokeWidth={px(1.5)} paintOrder="stroke"
                           style={{ pointerEvents: 'none' }}>
                           {poi.label}
