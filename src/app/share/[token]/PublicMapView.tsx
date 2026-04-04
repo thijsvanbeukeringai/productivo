@@ -18,8 +18,8 @@ const STATUS_BADGE: Record<AreaStatus, string> = {
 }
 
 // Fixed screen-pixel sizes for markers (constant regardless of zoom)
-const DOT_R = 5        // dot POI radius in screen px
-const NUM_R = 7        // numbered POI radius in screen px (fits 2-char text)
+const DOT_R = 7        // dot POI radius in screen px
+const NUM_R = 9.8      // numbered POI radius in screen px (fits 2-char text)
 const POS_R = 4.6      // position marker radius in screen px (+15%)
 const TAP_R = 22       // invisible tap target radius in screen px
 
@@ -186,8 +186,8 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   // Markers grow 10% per zoom doubling (e.g. 2x zoom → 1.1x bigger, 4x → 1.2x)
   const zoomBoost = 1 + Math.log2(Math.max(1, transform.scale)) * 0.1
 
-  // POIs grow an extra 50% at 2× zoom (caps at 1.5×)
-  const poiZoomBoost = Math.min(1.5, 1 + Math.log2(Math.max(1, transform.scale)) * 0.5)
+  // POIs grow up to 20% when zoomed in (caps at 1.2×)
+  const poiZoomBoost = Math.min(1.2, 1 + Math.log2(Math.max(1, transform.scale)) * 0.2)
 
   // Convert desired screen px to SVG units
   const px = (screenPx: number) => (screenPx * zoomBoost) / svgScale
@@ -465,7 +465,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                       filter={active ? 'url(#pub-glow-pulse)' : undefined} />
                     {isNum && (
                       <text textAnchor="middle" dominantBaseline="middle"
-                        fontSize={px(5.5)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
+                        fontSize={pxPoi(7.7)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
                         {poi.label}
                       </text>
                     )}
