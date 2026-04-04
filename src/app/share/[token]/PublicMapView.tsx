@@ -271,9 +271,10 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
           )}
 
           {imgSize && (
-            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden' }}
               viewBox={`0 0 ${imgSize.w} ${imgSize.h}`}
-              preserveAspectRatio="xMidYMid meet">
+              preserveAspectRatio="xMidYMid meet"
+              overflow="hidden">
               <defs>
                 {/* Static glow for non-selected */}
                 <filter id="pub-glow" x="-80%" y="-80%" width="260%" height="260%">
