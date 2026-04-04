@@ -453,9 +453,6 @@ export function MapCanvas({
             const cp = toStage(poi.x, poi.y)
             const baseLabel = isNumbered && cat ? `${cat.name} ${poi.label}` : poi.label
             const tooltipText = poi.note ? `${baseLabel}\n${poi.note}` : baseLabel
-            // Pin shape: tip at (0,0), circle center at (0,-14), radius 8
-            // M 0 0 C -5 -5 -8 -9 -8 -14 A 8 8 0 1 1 8 -14 C 8 -9 5 -5 0 0 Z
-            const pinPath = 'M 0 0 C -5 -5 -8 -9 -8 -14 A 8 8 0 1 1 8 -14 C 8 -9 5 -5 0 0 Z'
             return (
               <Group key={poi.id} x={cp.x} y={cp.y} draggable={draggable}
                 onClick={e => { e.cancelBubble = true; onPoiClick?.(poi) }}
@@ -464,21 +461,39 @@ export function MapCanvas({
                 onDragEnd={e => { const img = toImg(e.target.x(), e.target.y()); onPoiDragEnd?.(poi.id, img.x, img.y) }}
               >
                 {isText ? (
-                  // Pin shape with label above
-                  <>
-                    <Path
-                      data={pinPath}
-                      fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
-                      stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1}
-                      name={isHighlighted ? 'glow-pulse' : undefined}
-                      shadowColor={isHighlighted ? '#fbbf24' : undefined}
-                      shadowBlur={isHighlighted ? 20 : 0}
-                      shadowEnabled={isHighlighted} />
-                    <Text text={poi.label}
-                      fontSize={10} fontStyle="bold" fill="white"
-                      shadowColor="black" shadowBlur={4} shadowOpacity={1}
-                      align="center" width={100} x={-50} y={-38} listening={false} />
-                  </>
+                  // Speech-bubble pin: rounded rect + downward triangle, label inside
+                  (() => {
+                    const bW = 36, bH = 22, tipH = 9, tipW = 14, rx = 5
+                    const fill = isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color
+                    const sw = isSelected || isHighlighted ? 2 : 1.5
+                    return (
+                      <>
+                        {/* Rounded rect */}
+                        <Rect
+                          x={-bW / 2} y={-(bH + tipH)}
+                          width={bW} height={bH} cornerRadius={rx}
+                          fill={fill} stroke="white" strokeWidth={sw}
+                          name={isHighlighted ? 'glow-pulse' : undefined}
+                          shadowColor={isHighlighted ? '#fbbf24' : undefined}
+                          shadowBlur={isHighlighted ? 20 : 0}
+                          shadowEnabled={isHighlighted} />
+                        {/* Triangle tip — drawn over bottom border to merge seamlessly */}
+                        <Line
+                          points={[-tipW / 2, -tipH, tipW / 2, -tipH, 0, 0]}
+                          closed fill={fill} stroke={fill} strokeWidth={1}
+                          listening={false} />
+                        {/* White outline for left/right sides of triangle */}
+                        <Line points={[-tipW / 2, -tipH, 0, 0]} stroke="white" strokeWidth={sw} listening={false} />
+                        <Line points={[tipW / 2, -tipH, 0, 0]} stroke="white" strokeWidth={sw} listening={false} />
+                        {/* Label */}
+                        <Text text={poi.label}
+                          fontSize={9} fontStyle="bold" fill="white"
+                          shadowColor="rgba(0,0,0,0.5)" shadowBlur={2} shadowOpacity={1}
+                          align="center" width={bW - 6} x={-(bW - 6) / 2} y={-(bH + tipH) + (bH / 2) - 5}
+                          listening={false} />
+                      </>
+                    )
+                  })()
                 ) : isNumbered ? (
                   // Numbered — circle with number inside
                   <>

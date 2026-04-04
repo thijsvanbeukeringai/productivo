@@ -15,7 +15,11 @@ const DEFAULT_CATEGORIES = [
   { name: 'Camera',      color: '#64748b' },
 ]
 
-const PRESET_COLORS = ['#f59e0b','#22c55e','#8b5cf6','#ec4899','#64748b','#3b82f6','#ef4444','#14b8a6','#f97316','#a855f7']
+const PRESET_COLORS = [
+  '#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#10b981','#14b8a6',
+  '#06b6d4','#3b82f6','#6366f1','#8b5cf6','#a855f7','#ec4899','#f43f5e','#64748b',
+  '#78716c','#475569','#0f172a','#ffffff',
+]
 
 type EditorMode = 'none' | 'draw' | 'position' | 'poi' | 'calibrate'
 

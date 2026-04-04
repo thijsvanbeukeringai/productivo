@@ -454,9 +454,8 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                 const isTextPin = displayStyle === 'text'
                 const r = isHL ? px(isNum ? NUM_R * 2.2 : DOT_R * 2.5) : pxPoi(isNum ? NUM_R : DOT_R)
                 // Pin path: tip at (0,0), circle of radius pinR centered at (0, -pinR*1.75)
-                const pinR = pxPoi(NUM_R)
-                const pinCY = -pinR * 1.75
-                const pinPath = `M 0 0 C ${-pinR*0.6} ${-pinR*0.6} ${-pinR} ${pinCY+pinR*0.8} ${-pinR} ${pinCY} A ${pinR} ${pinR} 0 1 1 ${pinR} ${pinCY} C ${pinR} ${pinCY+pinR*0.8} ${pinR*0.6} ${-pinR*0.6} 0 0 Z`
+                // Speech-bubble pin dimensions in SVG units
+                const bW = pxPoi(36), bH = pxPoi(22), tipH = pxPoi(9), tipW = pxPoi(14), rx = pxPoi(5)
                 return (
                   <g key={poi.id} transform={`translate(${poi.x},${poi.y})`}
                     style={{ cursor: 'pointer' }}
@@ -468,13 +467,24 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                     <circle r={px(TAP_R)} fill="transparent" />
                     {isTextPin ? (
                       <>
-                        <path d={pinPath} fill={active ? '#fbbf24' : color}
-                          stroke="white" strokeWidth={px(active ? 2 : 1)}
+                        {/* Rounded rect bubble */}
+                        <rect x={-bW/2} y={-(bH+tipH)} width={bW} height={bH} rx={rx} ry={rx}
+                          fill={active ? '#fbbf24' : color}
+                          stroke="white" strokeWidth={px(active ? 2 : 1.5)}
                           filter={active ? 'url(#pub-glow-pulse)' : undefined}
                           style={{ pointerEvents: 'none' }} />
-                        <text y={pinCY - pinR - px(4)} textAnchor="middle"
-                          fontSize={pxPoi(11)} fontWeight="bold" fill="white"
-                          stroke="black" strokeWidth={px(3)} paintOrder="stroke"
+                        {/* Triangle tip — filled same color, no stroke so it merges */}
+                        <polygon points={`${-tipW/2},${-tipH} ${tipW/2},${-tipH} 0,0`}
+                          fill={active ? '#fbbf24' : color}
+                          style={{ pointerEvents: 'none' }} />
+                        {/* White outline on triangle sides only */}
+                        <line x1={-tipW/2} y1={-tipH} x2={0} y2={0} stroke="white" strokeWidth={px(active ? 2 : 1.5)} style={{ pointerEvents: 'none' }} />
+                        <line x1={tipW/2} y1={-tipH} x2={0} y2={0} stroke="white" strokeWidth={px(active ? 2 : 1.5)} style={{ pointerEvents: 'none' }} />
+                        {/* Label inside bubble */}
+                        <text textAnchor="middle" dominantBaseline="middle"
+                          y={-(tipH + bH/2)}
+                          fontSize={pxPoi(9)} fontWeight="bold" fill="white"
+                          stroke="rgba(0,0,0,0.4)" strokeWidth={px(1.5)} paintOrder="stroke"
                           style={{ pointerEvents: 'none' }}>
                           {poi.label}
                         </text>
