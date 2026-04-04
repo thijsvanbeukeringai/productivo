@@ -71,11 +71,11 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
   // Category form
   const [newCatName, setNewCatName] = useState('')
   const [newCatColor, setNewCatColor] = useState('#6366f1')
-  const [newCatStyle, setNewCatStyle] = useState<'dot' | 'numbered'>('dot')
+  const [newCatStyle, setNewCatStyle] = useState<'dot' | 'numbered' | 'text'>('dot')
   const [editingCatId, setEditingCatId] = useState<string | null>(null)
   const [editCatName, setEditCatName] = useState('')
   const [editCatColor, setEditCatColor] = useState('')
-  const [editCatStyle, setEditCatStyle] = useState<'dot' | 'numbered'>('dot')
+  const [editCatStyle, setEditCatStyle] = useState<'dot' | 'numbered' | 'text'>('dot')
 
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -480,6 +480,10 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
                           className={`flex-1 py-1 text-[10px] rounded border transition-colors ${editCatStyle === 'numbered' ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 border-slate-700 dark:border-slate-200' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
                           Nummer
                         </button>
+                        <button onClick={() => setEditCatStyle('text')}
+                          className={`flex-1 py-1 text-[10px] rounded border transition-colors ${editCatStyle === 'text' ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 border-slate-700 dark:border-slate-200' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
+                          Tekst
+                        </button>
                       </div>
                       <div className="flex gap-1">
                         <button onClick={() => handleSaveCategory(cat.id)} disabled={saving}
@@ -526,6 +530,10 @@ export function MapEditor({ projectId, backgroundUrl: initialBgUrl, areas: initi
                 <button onClick={() => setNewCatStyle('numbered')}
                   className={`flex-1 py-1 text-[10px] rounded border transition-colors ${newCatStyle === 'numbered' ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 border-slate-700 dark:border-slate-200' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
                   Nummer
+                </button>
+                <button onClick={() => setNewCatStyle('text')}
+                  className={`flex-1 py-1 text-[10px] rounded border transition-colors ${newCatStyle === 'text' ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 border-slate-700 dark:border-slate-200' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
+                  Tekst
                 </button>
               </div>
               <button onClick={handleCreateCategory} disabled={!newCatName.trim() || saving}

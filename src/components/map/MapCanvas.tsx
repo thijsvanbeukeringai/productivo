@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Stage, Layer, Image as KonvaImage, Line, Circle, Text, Group, Rect } from 'react-konva'
+import { Stage, Layer, Image as KonvaImage, Line, Circle, Text, Group, Rect, Path } from 'react-konva'
 import Konva from 'konva'
 import { createClient } from '@/lib/supabase/client'
 import type { Area, Position, MapPoi, MapPoiCategory, AreaStatus } from '@/types/app.types'
@@ -447,19 +447,40 @@ export function MapCanvas({
             const isHighlighted = highlightedId === poi.id || (highlightedIds?.has(poi.id) ?? false)
             const cat = poi.category_id ? categoryMap.get(poi.category_id) : null
             const color = cat?.color ?? '#6366f1'
-            const isNumbered = cat?.display_style === 'numbered'
+            const displayStyle = cat?.display_style ?? 'dot'
+            const isNumbered = displayStyle === 'numbered'
+            const isText = displayStyle === 'text'
             const cp = toStage(poi.x, poi.y)
             const baseLabel = isNumbered && cat ? `${cat.name} ${poi.label}` : poi.label
             const tooltipText = poi.note ? `${baseLabel}\n${poi.note}` : baseLabel
+            // Pin shape: tip at (0,0), circle center at (0,-14), radius 8
+            // M 0 0 C -5 -5 -8 -9 -8 -14 A 8 8 0 1 1 8 -14 C 8 -9 5 -5 0 0 Z
+            const pinPath = 'M 0 0 C -5 -5 -8 -9 -8 -14 A 8 8 0 1 1 8 -14 C 8 -9 5 -5 0 0 Z'
             return (
               <Group key={poi.id} x={cp.x} y={cp.y} draggable={draggable}
                 onClick={e => { e.cancelBubble = true; onPoiClick?.(poi) }}
-                onMouseEnter={() => setTooltip({ x: cp.x, y: cp.y - (isNumbered ? 22 : 18), text: tooltipText })}
+                onMouseEnter={() => setTooltip({ x: cp.x, y: cp.y - (isText ? 36 : isNumbered ? 22 : 18), text: tooltipText })}
                 onMouseLeave={() => setTooltip(null)}
                 onDragEnd={e => { const img = toImg(e.target.x(), e.target.y()); onPoiDragEnd?.(poi.id, img.x, img.y) }}
               >
-                {isNumbered ? (
-                  // Numbered security position — larger circle with number inside
+                {isText ? (
+                  // Pin shape with label above
+                  <>
+                    <Path
+                      data={pinPath}
+                      fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
+                      stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1}
+                      name={isHighlighted ? 'glow-pulse' : undefined}
+                      shadowColor={isHighlighted ? '#fbbf24' : undefined}
+                      shadowBlur={isHighlighted ? 20 : 0}
+                      shadowEnabled={isHighlighted} />
+                    <Text text={poi.label}
+                      fontSize={10} fontStyle="bold" fill="white"
+                      shadowColor="black" shadowBlur={4} shadowOpacity={1}
+                      align="center" width={100} x={-50} y={-38} listening={false} />
+                  </>
+                ) : isNumbered ? (
+                  // Numbered — circle with number inside
                   <>
                     <Circle radius={6.6}
                       fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
@@ -485,7 +506,7 @@ export function MapCanvas({
                     text={poi.note}
                     fontSize={10} fill="white"
                     shadowColor="black" shadowBlur={5} shadowOpacity={1}
-                    align="center" width={120} x={-60} y={isNumbered ? 10 : 6} listening={false}
+                    align="center" width={120} x={-60} y={isText ? 4 : isNumbered ? 10 : 6} listening={false}
                   />
                 )}
               </Group>

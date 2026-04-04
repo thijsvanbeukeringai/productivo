@@ -124,7 +124,7 @@ export async function revokeMapShareToken(projectId: string) {
 
 // --- Category CRUD ---
 
-export async function createPoiCategory(projectId: string, name: string, color: string, display_style: 'dot' | 'numbered' = 'dot') {
+export async function createPoiCategory(projectId: string, name: string, color: string, display_style: 'dot' | 'numbered' | 'text' = 'dot') {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('map_poi_categories')
@@ -136,7 +136,7 @@ export async function createPoiCategory(projectId: string, name: string, color: 
   return { data }
 }
 
-export async function updatePoiCategory(categoryId: string, projectId: string, name: string, color: string, display_style: 'dot' | 'numbered' = 'dot') {
+export async function updatePoiCategory(categoryId: string, projectId: string, name: string, color: string, display_style: 'dot' | 'numbered' | 'text' = 'dot') {
   const supabase = await createClient()
   const { error } = await supabase
     .from('map_poi_categories')

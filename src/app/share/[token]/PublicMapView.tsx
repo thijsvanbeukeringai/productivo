@@ -449,8 +449,14 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                 const active = isHL || isSel
                 const cat = poi.category_id ? categoryMap.get(poi.category_id) : null
                 const color = cat?.color ?? '#6366f1'
-                const isNum = cat?.display_style === 'numbered'
+                const displayStyle = cat?.display_style ?? 'dot'
+                const isNum = displayStyle === 'numbered'
+                const isTextPin = displayStyle === 'text'
                 const r = isHL ? px(isNum ? NUM_R * 2.2 : DOT_R * 2.5) : pxPoi(isNum ? NUM_R : DOT_R)
+                // Pin path: tip at (0,0), circle of radius pinR centered at (0, -pinR*1.75)
+                const pinR = pxPoi(NUM_R)
+                const pinCY = -pinR * 1.75
+                const pinPath = `M 0 0 C ${-pinR*0.6} ${-pinR*0.6} ${-pinR} ${pinCY+pinR*0.8} ${-pinR} ${pinCY} A ${pinR} ${pinR} 0 1 1 ${pinR} ${pinCY} C ${pinR} ${pinCY+pinR*0.8} ${pinR*0.6} ${-pinR*0.6} 0 0 Z`
                 return (
                   <g key={poi.id} transform={`translate(${poi.x},${poi.y})`}
                     style={{ cursor: 'pointer' }}
@@ -460,22 +466,39 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
                       zoomToPoint(poi.x, poi.y)
                     }}>
                     <circle r={px(TAP_R)} fill="transparent" />
-                    <circle r={r} fill={active ? '#fbbf24' : color}
-                      stroke="white" strokeWidth={px(active ? 2 : 1)}
-                      filter={active ? 'url(#pub-glow-pulse)' : undefined} />
-                    {isNum && (
-                      <text textAnchor="middle" dominantBaseline="middle"
-                        fontSize={pxPoi(7.7)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
-                        {poi.label}
-                      </text>
-                    )}
-                    {active && (
-                      <text y={r + px(12)} textAnchor="middle"
-                        fontSize={px(11)} fontWeight="bold" fill="white"
-                        stroke="black" strokeWidth={px(3)} paintOrder="stroke"
-                        style={{ pointerEvents: 'none' }}>
-                        {poi.label}
-                      </text>
+                    {isTextPin ? (
+                      <>
+                        <path d={pinPath} fill={active ? '#fbbf24' : color}
+                          stroke="white" strokeWidth={px(active ? 2 : 1)}
+                          filter={active ? 'url(#pub-glow-pulse)' : undefined}
+                          style={{ pointerEvents: 'none' }} />
+                        <text y={pinCY - pinR - px(4)} textAnchor="middle"
+                          fontSize={pxPoi(11)} fontWeight="bold" fill="white"
+                          stroke="black" strokeWidth={px(3)} paintOrder="stroke"
+                          style={{ pointerEvents: 'none' }}>
+                          {poi.label}
+                        </text>
+                      </>
+                    ) : (
+                      <>
+                        <circle r={r} fill={active ? '#fbbf24' : color}
+                          stroke="white" strokeWidth={px(active ? 2 : 1)}
+                          filter={active ? 'url(#pub-glow-pulse)' : undefined} />
+                        {isNum && (
+                          <text textAnchor="middle" dominantBaseline="middle"
+                            fontSize={pxPoi(7.7)} fontWeight="bold" fill="white" style={{ pointerEvents: 'none' }}>
+                            {poi.label}
+                          </text>
+                        )}
+                        {active && (
+                          <text y={r + px(12)} textAnchor="middle"
+                            fontSize={px(11)} fontWeight="bold" fill="white"
+                            stroke="black" strokeWidth={px(3)} paintOrder="stroke"
+                            style={{ pointerEvents: 'none' }}>
+                            {poi.label}
+                          </text>
+                        )}
+                      </>
                     )}
                   </g>
                 )
