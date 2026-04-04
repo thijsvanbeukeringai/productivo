@@ -251,7 +251,8 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
         style={{
           position: 'fixed',
           top: headerHeight,
-          left: 0, right: 0, bottom: 0,
+          left: 0, right: 0,
+          bottom: 'env(safe-area-inset-bottom, 0px)',
           cursor: dragRef.current ? 'grabbing' : 'grab',
           touchAction: 'none',
         }}
