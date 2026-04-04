@@ -196,7 +196,8 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   return (
     <div className="flex flex-col bg-slate-950" style={{ position: 'fixed', inset: 0, height: '100dvh' }}>
       {/* Top bar */}
-      <div className="shrink-0 bg-slate-900 border-b border-slate-700 px-3 py-2 flex flex-col gap-2">
+      <div className="shrink-0 bg-slate-900 border-b border-slate-700 px-3 pb-2 flex flex-col gap-2 z-10"
+        style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between">
           <span className="text-white font-semibold text-sm truncate">{projectName}</span>
           <div className="flex items-center gap-2.5 shrink-0 ml-3">
