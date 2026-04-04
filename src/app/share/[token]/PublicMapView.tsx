@@ -41,9 +41,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
-  const [visibleCategoryIds, setVisibleCategoryIds] = useState<Set<string>>(
-    () => new Set(categories.map(c => c.id))
-  )
+  const visibleCategoryIds = new Set(categories.map(c => c.id))
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
 
   const mapRef = useRef<HTMLDivElement>(null)
@@ -138,13 +136,6 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   // Convert desired screen px to SVG units
   const px = (screenPx: number) => (screenPx * zoomBoost) / svgScale
 
-  function toggleCategory(id: string) {
-    setVisibleCategoryIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
-      return next
-    })
-  }
 
   // Wheel zoom
   function handleWheel(e: React.WheelEvent) {
@@ -203,7 +194,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const visiblePois = initPois.filter(p => !p.category_id || visibleCategoryIds.has(p.category_id))
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-slate-950">
+    <div className="flex flex-col bg-slate-950" style={{ position: 'fixed', inset: 0, height: '100dvh' }}>
       {/* Top bar */}
       <div className="shrink-0 bg-slate-900 border-b border-slate-700 px-3 py-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">
