@@ -42,6 +42,7 @@ interface Props {
   drawingPolygon?: {x:number;y:number}[]
   draggable?: boolean
   highlightedId?: string | null
+  highlightedIds?: Set<string>
 }
 
 export function MapCanvas({
@@ -68,6 +69,7 @@ export function MapCanvas({
   drawingPolygon = [],
   draggable = false,
   highlightedId = null,
+  highlightedIds,
 }: Props) {
   const [areas, setAreas] = useState<Area[]>(initialAreas)
   const [positions, setPositions] = useState<Position[]>(initialPositions)
@@ -116,7 +118,8 @@ export function MapCanvas({
   useEffect(() => {
     konvaAnimRef.current?.stop()
     konvaAnimRef.current = null
-    if (!highlightedId || !stageRef.current) return
+    const hasHighlight = !!highlightedId || (highlightedIds && highlightedIds.size > 0)
+    if (!hasHighlight || !stageRef.current) return
     const stage = stageRef.current
     let t = 0
     konvaAnimRef.current = new Konva.Animation(() => {
@@ -126,7 +129,7 @@ export function MapCanvas({
     }, stage.getLayers() as unknown as Konva.Layer)
     konvaAnimRef.current.start()
     return () => { konvaAnimRef.current?.stop() }
-  }, [highlightedId])
+  }, [highlightedId, highlightedIds])
 
   // Auto-zoom to highlighted item
   useEffect(() => {
@@ -178,6 +181,60 @@ export function MapCanvas({
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
   }, [highlightedId, bgImage]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-zoom to fit all items in highlightedIds
+  useEffect(() => {
+    if (!highlightedIds || highlightedIds.size === 0 || !stageRef.current || !bgImage) return
+    const stage = stageRef.current
+    const imgScale = Math.min(width / bgImage.width, height / bgImage.height)
+    const bx = (width - bgImage.width * imgScale) / 2
+    const by = (height - bgImage.height * imgScale) / 2
+    const stageCoords: { x: number; y: number }[] = []
+    for (const id of highlightedIds) {
+      const area = areas.find(a => a.id === id)
+      if (area?.map_polygon?.length) {
+        const cx = area.map_polygon.reduce((s, p) => s + p.x, 0) / area.map_polygon.length
+        const cy = area.map_polygon.reduce((s, p) => s + p.y, 0) / area.map_polygon.length
+        stageCoords.push({ x: cx * imgScale + bx, y: cy * imgScale + by })
+      }
+      const pos = positions.find(p => p.id === id)
+      if (pos?.map_point) stageCoords.push({ x: pos.map_point.x * imgScale + bx, y: pos.map_point.y * imgScale + by })
+      const poi = pois.find(p => p.id === id)
+      if (poi) stageCoords.push({ x: poi.x * imgScale + bx, y: poi.y * imgScale + by })
+    }
+    if (stageCoords.length === 0) return
+    const minX = Math.min(...stageCoords.map(c => c.x))
+    const maxX = Math.max(...stageCoords.map(c => c.x))
+    const minY = Math.min(...stageCoords.map(c => c.y))
+    const maxY = Math.max(...stageCoords.map(c => c.y))
+    const bboxW = maxX - minX
+    const bboxH = maxY - minY
+    const centerX = (minX + maxX) / 2
+    const centerY = (minY + maxY) / 2
+    const targetScale = Math.min(
+      bboxW > 0 ? (width * 0.7) / bboxW : 5,
+      bboxH > 0 ? (height * 0.7) / bboxH : 5,
+      5
+    )
+    const targetX = width / 2 - centerX * targetScale
+    const targetY = height / 2 - centerY * targetScale
+    const startScale = stage.scaleX(), startX = stage.x(), startY = stage.y()
+    const startTime = performance.now(), duration = 600
+    function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
+    let raf: number
+    function frame(now: number) {
+      const t = Math.min((now - startTime) / duration, 1)
+      const e = easeInOut(t)
+      stage.scaleX(startScale + (targetScale - startScale) * e)
+      stage.scaleY(startScale + (targetScale - startScale) * e)
+      stage.x(startX + (targetX - startX) * e)
+      stage.y(startY + (targetY - startY) * e)
+      stage.batchDraw()
+      if (t < 1) raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }, [highlightedIds, bgImage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Background scale/offset (image fits canvas)
   const bgScale = bgImage ? Math.min(width / bgImage.width, height / bgImage.height) : 1
@@ -295,7 +352,7 @@ export function MapCanvas({
             const colors = AREA_COLORS[area.status]
             const pts = area.map_polygon!.flatMap(p => { const c = toStage(p.x, p.y); return [c.x, c.y] })
             const isSelected = selectedAreaId === area.id
-            const isHighlighted = highlightedId === area.id
+            const isHighlighted = highlightedId === area.id || (highlightedIds?.has(area.id) ?? false)
             const cx = pts.filter((_, i) => i % 2 === 0).reduce((s, v) => s + v, 0) / area.map_polygon!.length
             const cy = pts.filter((_, i) => i % 2 === 1).reduce((s, v) => s + v, 0) / area.map_polygon!.length
             return (
@@ -357,7 +414,7 @@ export function MapCanvas({
           {/* Position markers */}
           {positions.filter(p => p.map_point).map(pos => {
             const isSelected = selectedPositionId === pos.id
-            const isHighlighted = highlightedId === pos.id
+            const isHighlighted = highlightedId === pos.id || (highlightedIds?.has(pos.id) ?? false)
             const cp = toStage(pos.map_point!.x, pos.map_point!.y)
             return (
               <Group key={pos.id} x={cp.x} y={cp.y} draggable={draggable}
@@ -387,7 +444,7 @@ export function MapCanvas({
           {/* POI markers */}
           {visiblePois.map(poi => {
             const isSelected = selectedPoiId === poi.id
-            const isHighlighted = highlightedId === poi.id
+            const isHighlighted = highlightedId === poi.id || (highlightedIds?.has(poi.id) ?? false)
             const cat = poi.category_id ? categoryMap.get(poi.category_id) : null
             const color = cat?.color ?? '#6366f1'
             const isNumbered = cat?.display_style === 'numbered'
@@ -404,7 +461,7 @@ export function MapCanvas({
                 {isNumbered ? (
                   // Numbered security position — larger circle with number inside
                   <>
-                    <Circle radius={6}
+                    <Circle radius={6.6}
                       fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
                       stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1}
                       name={isHighlighted ? 'glow-pulse' : undefined}
@@ -412,11 +469,11 @@ export function MapCanvas({
                       shadowBlur={isHighlighted ? 20 : 0}
                       shadowEnabled={isHighlighted} />
                     <Text text={poi.label} fontSize={5} fontStyle="bold" fill="white"
-                      align="center" width={12} x={-6} y={-3} listening={false} />
+                      align="center" width={13} x={-6.5} y={-3.3} listening={false} />
                   </>
                 ) : (
                   // Regular dot POI
-                  <Circle radius={3} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
+                  <Circle radius={3.3} fill={isHighlighted ? '#fbbf24' : isSelected ? '#f59e0b' : color}
                     stroke="white" strokeWidth={isSelected || isHighlighted ? 2 : 1.5}
                     name={isHighlighted ? 'glow-pulse' : undefined}
                     shadowColor={isHighlighted ? '#fbbf24' : undefined}

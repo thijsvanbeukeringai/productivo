@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { MapSearch } from '@/components/map/MapSearch'
+import { MapSearch, type SearchResult } from '@/components/map/MapSearch'
 import type { Area, Position, MapPoi, MapPoiCategory, AreaStatus } from '@/types/app.types'
 
 const AREA_COLORS: Record<AreaStatus, { fill: string; stroke: string }> = {
@@ -42,6 +42,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set())
   const visibleCategoryIds = new Set(categories.map(c => c.id))
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
 
@@ -51,6 +52,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   const touchRef = useRef<{ touches: React.Touch[]; tx: number; ty: number; scale: number } | null>(null)
   const zoomRafRef = useRef<number>(0)
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const highlightIdsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Measure header height so map sits exactly below it
   useEffect(() => {
@@ -135,6 +137,45 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
     })
   }
 
+  // Animate zoom to fit a set of image-space coordinates
+  function zoomToFitAll(coords: { x: number; y: number }[]) {
+    if (!containerSize || !imgSize || coords.length === 0) return
+    if (coords.length === 1) { zoomToPoint(coords[0].x, coords[0].y); return }
+    cancelAnimationFrame(zoomRafRef.current)
+    const bs = Math.min(containerSize.w / imgSize.w, containerSize.h / imgSize.h)
+    const offX = (containerSize.w - imgSize.w * bs) / 2
+    const offY = (containerSize.h - imgSize.h * bs) / 2
+    const minX = Math.min(...coords.map(c => c.x))
+    const maxX = Math.max(...coords.map(c => c.x))
+    const minY = Math.min(...coords.map(c => c.y))
+    const maxY = Math.max(...coords.map(c => c.y))
+    const bboxW = (maxX - minX) * bs
+    const bboxH = (maxY - minY) * bs
+    const centerTdX = ((minX + maxX) / 2) * bs + offX
+    const centerTdY = ((minY + maxY) / 2) * bs + offY
+    const targetScale = Math.min(
+      bboxW > 0 ? (containerSize.w * 0.7) / bboxW : 10,
+      bboxH > 0 ? (containerSize.h * 0.7) / bboxH : 10,
+      10
+    )
+    const targetX = containerSize.w / 2 - centerTdX * targetScale
+    const targetY = containerSize.h / 2 - centerTdY * targetScale
+    const start = performance.now()
+    const duration = 600
+    setTransform(cur => {
+      const s0 = cur.scale, x0 = cur.x, y0 = cur.y
+      function ease(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
+      function step(now: number) {
+        const t = Math.min((now - start) / duration, 1)
+        const e = ease(t)
+        setTransform({ scale: s0 + (targetScale - s0) * e, x: x0 + (targetX - x0) * e, y: y0 + (targetY - y0) * e })
+        if (t < 1) zoomRafRef.current = requestAnimationFrame(step)
+      }
+      zoomRafRef.current = requestAnimationFrame(step)
+      return cur
+    })
+  }
+
   // SVG scale: ratio between SVG viewBox units and actual screen pixels
   // Used to render markers at constant screen-pixel sizes
   const svgBaseScale = imgSize && containerSize
@@ -145,8 +186,12 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
   // Markers grow 10% per zoom doubling (e.g. 2x zoom → 1.1x bigger, 4x → 1.2x)
   const zoomBoost = 1 + Math.log2(Math.max(1, transform.scale)) * 0.1
 
+  // POIs grow an extra 50% at 2× zoom (caps at 1.5×)
+  const poiZoomBoost = Math.min(1.5, 1 + Math.log2(Math.max(1, transform.scale)) * 0.5)
+
   // Convert desired screen px to SVG units
   const px = (screenPx: number) => (screenPx * zoomBoost) / svgScale
+  const pxPoi = (screenPx: number) => (screenPx * poiZoomBoost) / svgScale
 
 
   // Wheel zoom
@@ -227,18 +272,37 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
           className="w-full"
           areas={areas} positions={initPositions} pois={initPois} categories={categories}
           onSelectArea={a => {
-            setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(a.id)
+            setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlightedId(a.id); setHighlightedIds(new Set())
             const poly = areas.find(ar => ar.id === a.id)?.map_polygon
             if (poly?.length) zoomToPoint(poly.reduce((s, p) => s + p.x, 0) / poly.length, poly.reduce((s, p) => s + p.y, 0) / poly.length)
           }}
           onSelectPosition={p => {
-            setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(p.id)
+            setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlightedId(p.id); setHighlightedIds(new Set())
             const pt = initPositions.find(pos => pos.id === p.id)?.map_point
             if (pt) zoomToPoint(pt.x, pt.y)
           }}
           onSelectPoi={p => {
-            setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(p.id)
+            setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlightedId(p.id); setHighlightedIds(new Set())
             zoomToPoint(p.x, p.y)
+          }}
+          onMultiSelect={(results: SearchResult[]) => {
+            const ids = new Set(results.map(r => r.item.id))
+            setHighlightedIds(ids); setHighlightedId(null)
+            if (highlightIdsTimerRef.current) clearTimeout(highlightIdsTimerRef.current)
+            highlightIdsTimerRef.current = setTimeout(() => setHighlightedIds(new Set()), 2500)
+            const coords = results.flatMap(r => {
+              if (r.kind === 'area') {
+                const poly = r.item.map_polygon
+                if (!poly?.length) return []
+                return [{ x: poly.reduce((s, p) => s + p.x, 0) / poly.length, y: poly.reduce((s, p) => s + p.y, 0) / poly.length }]
+              } else if (r.kind === 'position') {
+                const pt = r.item.map_point
+                return pt ? [{ x: pt.x, y: pt.y }] : []
+              } else {
+                return [{ x: r.item.x, y: r.item.y }]
+              }
+            })
+            zoomToFitAll(coords)
           }}
         />
 
@@ -318,7 +382,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
               {/* Areas */}
               {areas.filter(a => a.map_polygon && a.map_polygon.length >= 3).map(area => {
                 const c = AREA_COLORS[area.status]
-                const isHL = highlightedId === area.id
+                const isHL = highlightedId === area.id || highlightedIds.has(area.id)
                 const isSel = selectedAreaId === area.id
                 const active = isHL || isSel
                 const pts = area.map_polygon!.map(p => `${p.x},${p.y}`).join(' ')
@@ -346,7 +410,7 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
 
               {/* Positions */}
               {initPositions.filter(p => p.map_point).map(pos => {
-                const isHL = highlightedId === pos.id
+                const isHL = highlightedId === pos.id || highlightedIds.has(pos.id)
                 const isSel = selectedPositionId === pos.id
                 const active = isHL || isSel
                 const r = px(POS_R)
@@ -380,13 +444,13 @@ export function PublicMapView({ projectId, projectName, backgroundUrl, areas: in
 
               {/* POIs */}
               {visiblePois.map(poi => {
-                const isHL = highlightedId === poi.id
+                const isHL = highlightedId === poi.id || highlightedIds.has(poi.id)
                 const isSel = selectedPoiId === poi.id
                 const active = isHL || isSel
                 const cat = poi.category_id ? categoryMap.get(poi.category_id) : null
                 const color = cat?.color ?? '#6366f1'
                 const isNum = cat?.display_style === 'numbered'
-                const r = px(isHL ? (isNum ? NUM_R * 2.2 : DOT_R * 2.5) : (isNum ? NUM_R : DOT_R))
+                const r = isHL ? px(isNum ? NUM_R * 2.2 : DOT_R * 2.5) : pxPoi(isNum ? NUM_R : DOT_R)
                 return (
                   <g key={poi.id} transform={`translate(${poi.x},${poi.y})`}
                     style={{ cursor: 'pointer' }}

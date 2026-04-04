@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { Area, Position, MapPoi, MapPoiCategory } from '@/types/app.types'
 
-type SearchResult =
+export type SearchResult =
   | { kind: 'area'; item: Area }
   | { kind: 'position'; item: Position }
   | { kind: 'poi'; item: MapPoi }
@@ -16,10 +16,11 @@ interface Props {
   onSelectArea?: (area: Area) => void
   onSelectPosition?: (pos: Position) => void
   onSelectPoi?: (poi: MapPoi) => void
+  onMultiSelect?: (results: SearchResult[]) => void
   className?: string
 }
 
-export function MapSearch({ areas, positions, pois, categories = [], onSelectArea, onSelectPosition, onSelectPoi, className }: Props) {
+export function MapSearch({ areas, positions, pois, categories = [], onSelectArea, onSelectPosition, onSelectPoi, onMultiSelect, className }: Props) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -40,7 +41,7 @@ export function MapSearch({ areas, positions, pois, categories = [], onSelectAre
       const cat = categories.find(c => c.id === p.category_id)
       return p.label.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (cat?.name.toLowerCase().includes(q) ?? false) || (p.note?.toLowerCase().includes(q) ?? false)
     }).map(p => ({ kind: 'poi' as const, item: p })),
-  ].slice(0, 10)
+  ].slice(0, 20)
 
   function select(r: SearchResult) {
     setQuery('')
@@ -48,6 +49,17 @@ export function MapSearch({ areas, positions, pois, categories = [], onSelectAre
     if (r.kind === 'area') onSelectArea?.(r.item)
     else if (r.kind === 'position') onSelectPosition?.(r.item)
     else onSelectPoi?.(r.item)
+  }
+
+  function handleEnter() {
+    if (results.length === 0) return
+    setQuery('')
+    setOpen(false)
+    if (results.length === 1) {
+      select(results[0])
+    } else {
+      onMultiSelect?.(results)
+    }
   }
 
   const kindLabel: Record<SearchResult['kind'], string> = {
@@ -79,7 +91,7 @@ export function MapSearch({ areas, positions, pois, categories = [], onSelectAre
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          onKeyDown={e => { if (e.key === 'Enter' && results.length > 0) { e.preventDefault(); select(results[0]) } }}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleEnter() } }}
           placeholder="Zoek area, positie of POI..."
           className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
         />

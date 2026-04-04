@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MapCanvas } from './MapCanvas'
-import { MapSearch } from './MapSearch'
+import { MapSearch, type SearchResult } from './MapSearch'
 import type { Area, Position, MapPoi, MapPoiCategory, AreaStatus } from '@/types/app.types'
 
 const STATUS_LABELS: Record<AreaStatus, string> = {
@@ -33,10 +33,13 @@ export function MapView({ projectId, backgroundUrl, areas, positions, pois, cate
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set())
+  const highlightIdsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Auto-clear highlight after 2.5s so glow animation stops
   const setHighlight = useCallback((id: string | null) => {
     setHighlightedId(id)
+    setHighlightedIds(new Set())
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
     if (id) highlightTimerRef.current = setTimeout(() => setHighlightedId(null), 2500)
   }, [])
@@ -83,6 +86,12 @@ export function MapView({ projectId, backgroundUrl, areas, positions, pois, cate
           onSelectArea={a => { setSelectedAreaId(a.id); setSelectedPositionId(null); setSelectedPoiId(null); setHighlight(a.id) }}
           onSelectPosition={p => { setSelectedPositionId(p.id); setSelectedAreaId(null); setSelectedPoiId(null); setHighlight(p.id) }}
           onSelectPoi={p => { setSelectedPoiId(p.id); setSelectedAreaId(null); setSelectedPositionId(null); setHighlight(p.id) }}
+          onMultiSelect={(results: SearchResult[]) => {
+            const ids = new Set(results.map(r => r.item.id))
+            setHighlightedIds(ids); setHighlightedId(null)
+            if (highlightIdsTimerRef.current) clearTimeout(highlightIdsTimerRef.current)
+            highlightIdsTimerRef.current = setTimeout(() => setHighlightedIds(new Set()), 2500)
+          }}
         />
 
         {/* Layer toggles */}
@@ -152,6 +161,7 @@ export function MapView({ projectId, backgroundUrl, areas, positions, pois, cate
               onPositionClick={handleSelectPosition}
               onPoiClick={handleSelectPoi}
               highlightedId={highlightedId}
+              highlightedIds={highlightedIds}
             />
           )}
         </div>
